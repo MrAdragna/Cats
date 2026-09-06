@@ -42,7 +42,7 @@
   }
   *{box-sizing:border-box;}
   html{font-size:115%;}
-  html,body{height:100%;}
+  html,body{height:100%; overscroll-behavior-y:contain;}
   body{
     margin:0;
     background:var(--paper);
@@ -79,6 +79,7 @@
     box-shadow:0 0 0 10px #1c1b19, 0 0 0 12px #3a3835;
     overflow-y:auto;
     overflow-x:hidden;
+    overscroll-behavior-y:contain;
   }
   /* Real phone / installed web app: no fake bezel, fills the actual screen.
      Safe-area padding keeps content clear of notches/home indicators. */
@@ -155,6 +156,9 @@
   .list-table th{text-align:left;padding:6px 8px;color:var(--ink-soft);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.03em;border-bottom:2px solid var(--ink);}
   .list-table td{padding:7px 8px;border-bottom:1px solid var(--line);}
   .list-table tr:nth-child(even){background:var(--band-a);}
+  .list-controls{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+  .list-controls select{flex:1;min-width:100px;padding:7px 8px;border:1px solid var(--line);border-radius:7px;background:var(--card);font-size:0.78rem;color:var(--ink);}
+  .list-day-header td{background:var(--ink);color:#fff;font-weight:700;font-size:0.78rem;padding:8px;border-bottom:none;}
 
   .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;padding:0 6px;font-size:0.76rem;color:var(--ink-soft);}
   .legend .swatch{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px;}
@@ -234,7 +238,7 @@
         <div id="addEventForm" style="display:none;" class="chart-card">
           <div style="display:flex;flex-direction:column;gap:10px;">
             <div style="display:flex;gap:6px;">
-              <button id="typePee" class="entry-type-btn" onclick="setEntryType('pee')" style="flex:1;">🐾 Pee</button>
+              <button id="typePee" class="entry-type-btn" onclick="setEntryType('pee')" style="flex:1;">💧 Pee</button>
               <button id="typeStraining" class="entry-type-btn" onclick="setEntryType('straining')" style="flex:1;">🚽 Straining</button>
               <button id="typeStress" class="entry-type-btn" onclick="setEntryType('stress')" style="flex:1;">⚡ Stressor</button>
             </div>
@@ -709,6 +713,7 @@ function setView(view){
 }
 
 function shiftPeriod(delta){
+  if(currentView === 'list') return; // no period concept for the list view
   navDirection = delta;
   if(currentView === 'day'){ shiftDay(delta); return; }
   if(!monthAnchor) return;
@@ -780,43 +785,106 @@ function renderCurrentView(){
     document.getElementById('statsRow').innerHTML = '';
     renderListView();
   }
-  playPeriodAnimation();
+  if(currentView !== 'list') playPeriodAnimation();
 }
 
-// Plain scrollable table of every straining/pee entry, most recent first —
-// meant for quickly checking specifics or sharing with a vet, not for
-// visual pattern-spotting like the charts.
-function renderListView(){
-  const rows = [];
-  straining.forEach(s => rows.push({
-    time: s.start, type: '🚽 Straining',
-    detail: Math.round((s.end - s.start)/60000) + ' min',
-    note: s.note || ''
-  }));
-  pee.forEach(p => rows.push({
-    time: p.time, type: '🐾 Pee',
-    detail: 'Size ' + p.rating + '/6',
-    note: p.note || ''
-  }));
-  rows.sort((a,b) => b.time - a.time);
+// List view: every straining/pee entry, grouped by day with a controls bar
+// for range/type filtering and sort direction — meant for quickly checking
+// specifics or sharing with a vet, not for visual pattern-spotting.
+let listSort = 'desc', listRange = 'all', listType = 'all';
 
+function renderListView(){
   const container = document.getElementById('viewContainer');
+  container.innerHTML =
+    '<div class="chart-card">' +
+      '<div class="list-controls">' +
+        '<select id="listRangeSel" onchange="onListControlChange()">' +
+          '<option value="all">All time</option>' +
+          '<option value="week">This week</option>' +
+          '<option value="month">This month</option>' +
+          '<option value="year">This year</option>' +
+        '</select>' +
+        '<select id="listTypeSel" onchange="onListControlChange()">' +
+          '<option value="all">All entries</option>' +
+          '<option value="straining">Straining only</option>' +
+          '<option value="pee">Pee only</option>' +
+        '</select>' +
+        '<select id="listSortSel" onchange="onListControlChange()">' +
+          '<option value="desc">Newest first</option>' +
+          '<option value="asc">Oldest first</option>' +
+        '</select>' +
+      '</div>' +
+      '<div id="listBody"></div>' +
+    '</div>';
+  document.getElementById('listRangeSel').value = listRange;
+  document.getElementById('listTypeSel').value = listType;
+  document.getElementById('listSortSel').value = listSort;
+  renderListBody();
+}
+
+function onListControlChange(){
+  listRange = document.getElementById('listRangeSel').value;
+  listType = document.getElementById('listTypeSel').value;
+  listSort = document.getElementById('listSortSel').value;
+  renderListBody();
+}
+
+function renderListBody(){
+  const today = new Date();
+  const todayKey = dateKeyFromDate(today);
+  let minKeyBound = null;
+  if(listRange === 'week'){
+    const days = weekDates(today);
+    minKeyBound = days[0];
+  } else if(listRange === 'month'){
+    minKeyBound = todayKey.slice(0,8) + '01';
+  } else if(listRange === 'year'){
+    minKeyBound = todayKey.slice(0,4) + '-01-01';
+  }
+
+  let rows = [];
+  if(listType !== 'pee'){
+    straining.forEach(s => rows.push({
+      date: s.date, time: s.start, type: '🚽 Straining',
+      detail: Math.round((s.end - s.start)/60000) + ' min',
+      note: s.note || ''
+    }));
+  }
+  if(listType !== 'straining'){
+    pee.forEach(p => rows.push({
+      date: p.date, time: p.time, type: '💧 Pee',
+      detail: 'Size ' + p.rating + '/6',
+      note: p.note || ''
+    }));
+  }
+  if(minKeyBound){
+    rows = rows.filter(r => r.date >= minKeyBound && r.date <= todayKey);
+  }
+  rows.sort((a,b) => listSort === 'desc' ? b.time - a.time : a.time - b.time);
+
+  const body = document.getElementById('listBody');
   if(!rows.length){
-    container.innerHTML = '<div class="chart-card"><div class="empty-msg">No entries logged yet.</div></div>';
+    body.innerHTML = '<div class="empty-msg">No entries in this range.</div>';
     return;
   }
 
-  let html = '<div class="chart-card"><table class="list-table"><thead><tr>' +
-    '<th>Date</th><th>Time</th><th>Type</th><th>Detail</th><th>Note</th></tr></thead><tbody>';
+  let html = '<table class="list-table"><thead><tr>' +
+    '<th>Time</th><th>Type</th><th>Detail</th><th>Note</th></tr></thead><tbody>';
+  let lastDate = null;
   rows.forEach(r => {
-    html += '<tr><td>' + r.time.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}) + '</td>' +
-      '<td>' + fmtTime(r.time) + '</td>' +
+    if(r.date !== lastDate){
+      const [yy,mm,dd] = r.date.split('-').map(Number);
+      const label = new Date(yy,mm-1,dd).toLocaleDateString(undefined,{weekday:'long', month:'short', day:'numeric'});
+      html += '<tr class="list-day-header"><td colspan="4">' + label + '</td></tr>';
+      lastDate = r.date;
+    }
+    html += '<tr><td>' + fmtTime(r.time) + '</td>' +
       '<td>' + r.type + '</td>' +
       '<td>' + r.detail + '</td>' +
       '<td>' + escapeHtml(r.note) + '</td></tr>';
   });
-  html += '</tbody></table></div>';
-  container.innerHTML = html;
+  html += '</tbody></table>';
+  body.innerHTML = html;
 }
 
 function weekDates(anchor){
@@ -1236,15 +1304,15 @@ function drawFeedingLines(g, x, plotWidth, plotHeight, dayStart){
 
   g.selectAll('.feedline').data(marks).enter().append('line')
     .attr('x1', d => x(d.time)).attr('x2', d => x(d.time))
-    .attr('y1', -8).attr('y2', plotHeight)
+    .attr('y1', -18).attr('y2', plotHeight)
     .attr('stroke', '#c99a3a').attr('stroke-width', 1.5)
     .attr('stroke-dasharray', '4,3').style('opacity', 0.7);
 
   // Plain flag shape, no on-chart text — tap/scrub reveals which meal it is.
-  const flagW = 9, flagH = 7;
+  const flagW = 11, flagH = 9;
   const flagX = d => Math.max(0, Math.min(plotWidth, x(d.time)));
   g.selectAll('.feedflag').data(marks).enter().append('path')
-    .attr('transform', d => `translate(${flagX(d)},-8)`)
+    .attr('transform', d => `translate(${flagX(d)},-18)`)
     .attr('d', `M0,0 L${flagW},${flagH/2} L0,${flagH} Z`)
     .attr('fill', '#c99a3a');
 
@@ -1306,7 +1374,7 @@ function drawCoreDayChart(containerId, date, drawExtra){
   const dayStart = new Date(date + 'T00:00:00');
   const dayEnd = new Date(dayStart.getTime() + 24*3600000);
 
-  const margin = {top: 22, right: 40, bottom: 32, left: 10};
+  const margin = {top: 32, right: 40, bottom: 32, left: 10};
   const width = Math.max(area.clientWidth || 320, 260);
   const plotWidth = width - margin.left - margin.right;
   const plotHeight = 260;
