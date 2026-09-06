@@ -185,24 +185,6 @@
   }
   .fab-add:active{transform:scale(0.93);}
 
-  .pull-refresh-bar{
-    height:0; overflow:hidden;
-    display:flex; align-items:center; justify-content:center;
-    transition:height .28s cubic-bezier(0.22,0.61,0.36,1);
-  }
-  .pull-refresh-icon{
-    font-size:1.4rem; line-height:1; opacity:0.35;
-    transform:scale(0.6) rotate(0deg);
-    transition:opacity .1s, transform .1s;
-  }
-  .pull-refresh-icon.armed{opacity:1;}
-  .pull-refresh-bar.spinning{transition:none;}
-  .pull-refresh-bar.spinning .pull-refresh-icon{
-    animation:pullSpin 0.7s linear infinite;
-    opacity:1; transform:scale(1);
-  }
-  @keyframes pullSpin{from{transform:rotate(0deg);} to{transform:rotate(360deg);}}
-
   .axis text{fill:var(--ink-soft);font-size:11px;}
   .axis path,.axis line{stroke:var(--line);}
   .gridline{stroke:var(--line);stroke-dasharray:2,3;}
@@ -297,7 +279,6 @@
           </div>
         </div>
 
-        <div id="pullRefreshBar" class="pull-refresh-bar"><div class="pull-refresh-icon" id="pullRefreshIcon">🐾</div></div>
         <div id="periodContent">
           <div class="stats" id="statsRow"></div>
           <div id="viewContainer"></div>
@@ -1729,80 +1710,9 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn, labelsOnly){
 // vertical wobble scales with how far you've dragged — a fixed pixel cutoff
 // made longer swipes fail inconsistently. touch-action:none stops the page
 // from trying to scroll during the gesture.
-// Pull-to-refresh: installed home-screen web apps have no browser chrome, so
-// there's no native pull-to-refresh at all — this replaces it. The bar above
-// the content grows as you pull (pushing content down, same as a native
-// app), with the icon dimmed/small until "charged" past the threshold, at
-// which point it goes full opacity/size. Release while charged to refresh
-// (it spins while loadData() runs); release early and it un-winds/cancels.
-// Vibration is a no-op on iOS (no Vibration API there) but works on Android.
-(function setupPullToRefresh(){
-  const bar = document.getElementById('pullRefreshBar');
-  const icon = document.getElementById('pullRefreshIcon');
-  const MAX_PULL = 64;
-  const THRESHOLD = 44;
-  let scrollEl = null, startY = null, pulling = false, refreshing = false, armed = false;
-
-  function getContainer(){
-    const frame = document.getElementById('deviceFrame');
-    if(frame && /(auto|scroll)/.test(getComputedStyle(frame).overflowY)) return frame;
-    return document.scrollingElement || document.documentElement;
-  }
-
-  function onDown(e){
-    if(refreshing) return;
-    scrollEl = getContainer();
-    if(scrollEl.scrollTop > 0){ startY = null; return; }
-    startY = e.clientY;
-    pulling = true;
-    armed = false;
-    bar.style.transition = 'none';
-  }
-  function onMove(e){
-    if(!pulling || startY === null) return;
-    const dy = e.clientY - startY;
-    if(dy <= 0){
-      bar.style.height = '0px';
-      icon.classList.remove('armed');
-      armed = false;
-      return;
-    }
-    const pull = Math.min(MAX_PULL, dy * 0.4); // damped ~40% follow, with resistance
-    bar.style.height = pull + 'px';
-    armed = pull >= THRESHOLD;
-    icon.classList.toggle('armed', armed);
-    icon.style.transform = `scale(${0.6 + 0.4*(pull/MAX_PULL)}) rotate(${pull*4}deg)`;
-  }
-  function onUp(){
-    if(!pulling) return;
-    pulling = false;
-    bar.style.transition = 'height .28s cubic-bezier(0.22,0.61,0.36,1)';
-    if(armed){
-      refreshing = true;
-      bar.classList.add('spinning');
-      bar.style.height = '50px';
-      icon.classList.add('armed');
-      icon.style.transform = '';
-      if(navigator.vibrate) navigator.vibrate(15);
-      loadData();
-      setTimeout(() => {
-        bar.classList.remove('spinning');
-        bar.style.transition = 'height .28s cubic-bezier(0.22,0.61,0.36,1)';
-        bar.style.height = '0px';
-        icon.classList.remove('armed');
-        refreshing = false;
-      }, 900);
-    } else {
-      bar.style.height = '0px';
-      icon.classList.remove('armed');
-    }
-  }
-
-  document.addEventListener('pointerdown', onDown);
-  document.addEventListener('pointermove', onMove);
-  document.addEventListener('pointerup', onUp);
-  document.addEventListener('pointercancel', onUp);
-})();
+// Pull-to-refresh removed for now (was interfering with normal scrolling —
+// its document-level pointer listeners were racing the chart's own scroll
+// takeover). May revisit this later with a cleaner approach.
 
 (function setupSwipeZone(){
   const zone = document.querySelector('.wrap');
