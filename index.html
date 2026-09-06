@@ -6,6 +6,11 @@
 <title>Puddle's Pee</title>
 <link id="faviconLink" rel="icon" href="">
 <link id="appleTouchIcon" rel="apple-touch-icon" href="">
+<!-- If you host a real icon file alongside this HTML (e.g. on GitHub Pages),
+     you can set a static default here instead/as well, e.g.:
+     <link rel="apple-touch-icon" href="icon.png">
+     The JS below will still override it at runtime with whatever photo is
+     found in the sheet's Config tab, if one exists. -->
 <link id="manifestLink" rel="manifest" href="">
 <!-- These only take effect once this page is actually hosted over HTTPS —
      browsers won't grant standalone/full-screen "installed app" behavior to
@@ -54,6 +59,7 @@
   .device-toggle button.active{background:var(--ink); color:#fff; border-color:var(--ink);}
 
   .stage{display:flex; justify-content:center; align-items:flex-start; padding:24px 12px 60px; min-height:calc(100vh - 46px);}
+  .stage.native-stage{padding:0; min-height:100vh; display:block;}
   .device-frame{background:var(--paper); transition:all .15s ease;}
   .device-frame.desktop{
     width:100%; max-width:980px; border-radius:4px;
@@ -69,11 +75,29 @@
     overflow-y:auto;
     overflow-x:hidden;
   }
+  /* Real phone / installed web app: no fake bezel, fills the actual screen.
+     Safe-area padding keeps content clear of notches/home indicators. */
+  .device-frame.native{
+    width:100%; max-width:100%; height:auto; aspect-ratio:auto;
+    border-radius:0; box-shadow:none; overflow:visible;
+  }
+  .device-frame.native .wrap{
+    padding-top:max(22px, env(safe-area-inset-top));
+    padding-bottom:max(50px, env(safe-area-inset-bottom));
+    padding-left:max(18px, env(safe-area-inset-left));
+    padding-right:max(18px, env(safe-area-inset-right));
+  }
 
   .wrap{padding:22px 18px 50px;}
   header{margin-bottom:16px;border-bottom:2px solid var(--ink);padding-bottom:12px;}
   header h1{font-size:1.3rem;margin:0;font-weight:700;letter-spacing:-0.01em;}
   header .sub{color:var(--ink-soft);font-size:0.85rem;}
+
+  /* Period-change animation */
+  @keyframes slideInFromRight{from{opacity:0; transform:translateX(18px);} to{opacity:1; transform:translateX(0);}}
+  @keyframes slideInFromLeft{from{opacity:0; transform:translateX(-18px);} to{opacity:1; transform:translateX(0);}}
+  #viewContainer.slide-fwd{animation:slideInFromRight .22s ease-out;}
+  #viewContainer.slide-back{animation:slideInFromLeft .22s ease-out;}
 
   .state-msg{padding:60px 16px;text-align:center;color:var(--ink-soft);font-size:0.95rem;}
   .state-msg.error{color:var(--error);}
@@ -91,6 +115,8 @@
   .period-label{flex:1;text-align:center;font-weight:600;}
   .today-btn{width:auto !important;padding:0 12px;margin-left:auto;font-size:0.78rem;background:var(--card);color:var(--accent);border:1px solid var(--accent) !important;font-weight:600;}
   .today-btn.current{background:var(--accent);color:#fff;}
+  .entry-type-btn{padding:10px 4px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink-soft);font-size:0.82rem;font-weight:600;cursor:pointer;}
+  .entry-type-btn.active{background:var(--ink);color:#fff;border-color:var(--ink);}
   .swipe-hint{text-align:center;font-size:0.68rem;color:var(--ink-soft);opacity:0.6;margin:2px 0 10px;}
 
   .stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
@@ -118,7 +144,7 @@
   <button id="btnDesktop" onclick="setDevice('desktop')">Desktop</button>
 </div>
 
-<div class="stage">
+<div class="stage" id="stage">
   <div class="device-frame mobile" id="deviceFrame">
     <div class="wrap">
       <header>
@@ -140,19 +166,47 @@
           <button id="tabDay" onclick="setView('day')">Day</button>
           <button id="tabWeek" onclick="setView('week')">Week</button>
           <button id="tabMonth" onclick="setView('month')">Month</button>
+          <button id="tabYear" onclick="setView('year')">Year</button>
           <button id="addEventBtn" onclick="toggleAddEventForm()" style="flex:0 0 auto;width:36px;">+</button>
         </div>
 
         <div id="addEventForm" style="display:none;" class="chart-card">
-          <div style="display:flex;flex-direction:column;gap:8px;">
-            <label style="font-size:0.78rem;color:var(--ink-soft);">What happened?
-              <input id="eventLabel" type="text" placeholder="Garbage truck, parade, fireworks…" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:4px;">
-            </label>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;gap:6px;">
+              <button id="typePee" class="entry-type-btn" onclick="setEntryType('pee')" style="flex:1;">🐾 Pee</button>
+              <button id="typeStraining" class="entry-type-btn" onclick="setEntryType('straining')" style="flex:1;">🚽 Straining</button>
+              <button id="typeStress" class="entry-type-btn" onclick="setEntryType('stress')" style="flex:1;">⚡ Stressor</button>
+            </div>
+
             <label style="font-size:0.78rem;color:var(--ink-soft);">When?
               <input id="eventTime" type="datetime-local" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:4px;">
             </label>
+
+            <div id="fieldPeeRating" style="display:none;">
+              <label style="font-size:0.78rem;color:var(--ink-soft);">Size (1–6)</label>
+              <input id="peeRating" type="range" min="1" max="6" value="3" style="width:100%;">
+              <div style="text-align:center;font-weight:700;" id="peeRatingVal">3</div>
+            </div>
+
+            <div id="fieldDuration" style="display:none;">
+              <label style="font-size:0.78rem;color:var(--ink-soft);">Duration (minutes)
+                <input id="strainDuration" type="number" min="1" placeholder="e.g. 10" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:4px;">
+              </label>
+            </div>
+
+            <div id="fieldStressRating" style="display:none;">
+              <label style="font-size:0.78rem;color:var(--ink-soft);">Stress/noise level (1–6)</label>
+              <input id="stressRating" type="range" min="1" max="6" value="3" style="width:100%;">
+              <div style="text-align:center;font-weight:700;" id="stressRatingVal">3</div>
+            </div>
+
+            <label style="font-size:0.78rem;color:var(--ink-soft);" id="labelNoteWrap">
+              <span id="noteLabelText">Note (optional)</span>
+              <input id="eventLabel" type="text" placeholder="Garbage truck, parade, fireworks…" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:4px;">
+            </label>
+
             <div style="display:flex;gap:8px;">
-              <button class="btn-primary" onclick="submitStressEvent()" style="flex:1;padding:10px;border-radius:7px;border:none;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;">Save</button>
+              <button onclick="submitStressEvent()" style="flex:1;padding:10px;border-radius:7px;border:none;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;">Save</button>
               <button onclick="toggleAddEventForm()" style="flex:1;padding:10px;border-radius:7px;border:1px solid var(--line);background:var(--card);cursor:pointer;">Cancel</button>
             </div>
             <div id="eventFormStatus" style="font-size:0.76rem;color:var(--ink-soft);"></div>
@@ -189,12 +243,20 @@ const WEATHER_LON = -86.0164;
 
 // Recurring daily feeding schedule (not from the sheet — fixed reference times).
 const FEEDING_TIMES = [
-  {hour:0,  minute:0,  label:'Feeding'},
-  {hour:6,  minute:0,  label:'Feeding'},
-  {hour:12, minute:0,  label:'Feeding'},
-  {hour:18, minute:0,  label:'Feeding'},
-  {hour:20, minute:0,  label:'Feeding · wet treat + medicine'}
+  {hour:0,  minute:0,  label:'Midnight snack'},
+  {hour:6,  minute:0,  label:'Breakfast'},
+  {hour:12, minute:0,  label:'Lunch'},
+  {hour:18, minute:0,  label:'Dinner'},
+  {hour:20, minute:0,  label:'Treat/med'}
 ];
+
+// Adjustable heuristics for color-coding the stats — not medical guidance,
+// just rough personal-tracking thresholds you can tune to whatever your vet
+// suggests or whatever feels normal for your own cat.
+const PEE_COUNT_LOW = 2;         // fewer pees/day than this gets flagged
+const PEE_COUNT_HIGH = 6;        // more pees/day than this gets flagged
+const MAX_PEE_GAP_HOURS = 8;      // longest gap between pees before flagging
+const MAX_STRAINING_MIN = 10;     // straining episode length before flagging
 
 let straining = [];
 let pee = [];
@@ -213,6 +275,25 @@ function setDevice(mode){
   document.getElementById('btnMobile').classList.toggle('active', mode==='mobile');
   document.getElementById('btnDesktop').classList.toggle('active', mode==='desktop');
   renderCurrentView();
+}
+
+// On an actual phone (installed web app or mobile browser), skip the fake
+// phone-bezel mockup entirely — it should just use the whole screen, no
+// "app within an app." The bezel/toggle is only for testing on desktop.
+function isRealMobileDevice(){
+  const uaMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const coarsePointer = window.matchMedia && window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+  return uaMobile && coarsePointer;
+}
+
+function initDeviceMode(){
+  if(isRealMobileDevice()){
+    document.getElementById('deviceFrame').className = 'device-frame native';
+    document.getElementById('stage').classList.add('native-stage');
+    document.querySelector('.device-toggle').style.display = 'none';
+  } else {
+    setDevice('mobile');
+  }
 }
 
 function showState(kind, message){
@@ -318,6 +399,22 @@ function updateIconsAndManifest(logoDataUri){
   document.getElementById('manifestLink').href = URL.createObjectURL(blob);
 }
 
+let currentEntryType = 'pee';
+
+function setEntryType(type){
+  currentEntryType = type;
+  ['typePee','typeStraining','typeStress'].forEach(id => {
+    document.getElementById(id).classList.toggle('active',
+      id === 'type' + type.charAt(0).toUpperCase() + type.slice(1));
+  });
+  document.getElementById('fieldPeeRating').style.display = type === 'pee' ? 'block' : 'none';
+  document.getElementById('fieldDuration').style.display = type === 'straining' ? 'block' : 'none';
+  document.getElementById('fieldStressRating').style.display = type === 'stress' ? 'block' : 'none';
+  document.getElementById('noteLabelText').textContent = type === 'stress' ? 'What happened?' : 'Note (optional)';
+  document.getElementById('eventLabel').placeholder = type === 'stress'
+    ? 'Garbage truck, parade, fireworks…' : 'Optional note';
+}
+
 function toggleAddEventForm(){
   const form = document.getElementById('addEventForm');
   const showing = form.style.display !== 'none';
@@ -325,23 +422,55 @@ function toggleAddEventForm(){
   if(!showing){
     document.getElementById('eventFormStatus').textContent = '';
     document.getElementById('eventLabel').value = '';
+    document.getElementById('strainDuration').value = '';
+    document.getElementById('peeRating').value = 3;
+    document.getElementById('peeRatingVal').textContent = '3';
+    document.getElementById('stressRating').value = 3;
+    document.getElementById('stressRatingVal').textContent = '3';
+    setEntryType('pee');
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     document.getElementById('eventTime').value = now.toISOString().slice(0,16);
   }
 }
 
+document.addEventListener('input', function(e){
+  if(e.target.id === 'peeRating') document.getElementById('peeRatingVal').textContent = e.target.value;
+  if(e.target.id === 'stressRating') document.getElementById('stressRatingVal').textContent = e.target.value;
+});
+
 function submitStressEvent(){
-  const label = document.getElementById('eventLabel').value.trim();
   const timeStr = document.getElementById('eventTime').value;
+  const note = document.getElementById('eventLabel').value.trim();
   const status = document.getElementById('eventFormStatus');
-  if(!label || !timeStr){
-    status.textContent = 'Enter what happened and when.';
+  if(!timeStr){
+    status.textContent = 'Choose a date/time.';
     return;
   }
   const isoTime = new Date(timeStr).toISOString();
-  status.textContent = 'Saving…';
 
+  const params = { action: 'addEntry', entryType: currentEntryType, timestamp: isoTime };
+  if(currentEntryType === 'pee'){
+    params.rating = document.getElementById('peeRating').value;
+    params.note = note;
+  } else if(currentEntryType === 'straining'){
+    const duration = document.getElementById('strainDuration').value;
+    if(!duration || Number(duration) <= 0){
+      status.textContent = 'Enter a duration in minutes.';
+      return;
+    }
+    params.duration = duration;
+    params.note = note;
+  } else {
+    if(!note){
+      status.textContent = 'Describe what happened.';
+      return;
+    }
+    params.label = note;
+    params.rating = document.getElementById('stressRating').value;
+  }
+
+  status.textContent = 'Saving…';
   const cbName = 'addEventCallback_' + (++callbackCounter);
   const timeout = setTimeout(() => {
     if(window[cbName]){ status.textContent = 'Timed out saving. Try again.'; delete window[cbName]; }
@@ -359,9 +488,8 @@ function submitStressEvent(){
     setTimeout(() => { toggleAddEventForm(); loadData(); }, 500);
   };
 
-  const url = APPS_SCRIPT_URL + '?action=addEvent'
-    + '&label=' + encodeURIComponent(label)
-    + '&timestamp=' + encodeURIComponent(isoTime)
+  const url = APPS_SCRIPT_URL + '?' + Object.keys(params)
+    .map(k => k + '=' + encodeURIComponent(params[k])).join('&')
     + '&callback=' + cbName;
   const script = document.createElement('script');
   script.src = url;
@@ -460,7 +588,8 @@ function populateDateSelect(){
   dateList.forEach((d,i) => {
     const opt = document.createElement('option');
     opt.value = i;
-    opt.textContent = formatDateLabel(d);
+    const hasEvents = straining.some(s=>s.date===d) || pee.some(p=>p.date===d) || stressEvents.some(ev=>ev.date===d);
+    opt.textContent = (hasEvents ? '● ' : '　 ') + formatDateLabel(d);
     sel.appendChild(opt);
   });
   sel.value = currentDateIdx;
@@ -480,29 +609,33 @@ function onDateSelect(){
 
 // ---- View switching ----
 
+let navDirection = 1;
+
 function setView(view){
   currentView = view;
-  ['tabDay','tabWeek','tabMonth'].forEach(id => {
+  ['tabDay','tabWeek','tabMonth','tabYear'].forEach(id => {
     document.getElementById(id).classList.toggle('active', id === 'tab' + view.charAt(0).toUpperCase() + view.slice(1));
   });
   document.getElementById('dateSelect').style.display = view === 'day' ? '' : 'none';
   document.getElementById('periodLabel').style.display = view === 'day' ? 'none' : '';
-  document.getElementById('swipeHint').textContent = view === 'day'
-    ? 'Drag chart to inspect · swipe further to change day'
-    : (view === 'week' ? 'Drag chart to inspect · swipe further to change week' : 'Drag chart to inspect · swipe further to change month');
+  const hints = {day:'day', week:'week', month:'month', year:'year'};
+  document.getElementById('swipeHint').textContent = 'Drag chart to inspect · swipe further to change ' + hints[view];
   renderCurrentView();
 }
 
 function shiftPeriod(delta){
+  navDirection = delta;
   if(currentView === 'day'){ shiftDay(delta); return; }
   if(!monthAnchor) return;
   if(currentView === 'week'){ monthAnchor.setDate(monthAnchor.getDate() + delta*7); }
-  else { monthAnchor.setMonth(monthAnchor.getMonth() + delta); }
+  else if(currentView === 'month'){ monthAnchor.setMonth(monthAnchor.getMonth() + delta); }
+  else { monthAnchor.setFullYear(monthAnchor.getFullYear() + delta); }
   renderCurrentView();
 }
 
 function shiftDay(delta){
   if(!dateList.length) return;
+  navDirection = delta;
   currentDateIdx = Math.max(0, Math.min(dateList.length-1, currentDateIdx + delta));
   document.getElementById('dateSelect').value = currentDateIdx;
   monthAnchor = new Date(dateList[currentDateIdx] + 'T00:00:00');
@@ -514,6 +647,7 @@ function goToToday(){
   const todayKey = dateKeyFromDate(new Date());
   let idx = dateList.indexOf(todayKey);
   if(idx === -1) idx = dateList.length - 1;
+  navDirection = idx >= currentDateIdx ? 1 : -1;
   currentDateIdx = idx;
   document.getElementById('dateSelect').value = currentDateIdx;
   monthAnchor = new Date(dateList[currentDateIdx] + 'T00:00:00');
@@ -525,6 +659,13 @@ function updateTodayButton(){
   if(!btn || !dateList.length) return;
   const todayKey = dateKeyFromDate(new Date());
   btn.classList.toggle('current', dateList[currentDateIdx] === todayKey);
+}
+
+function playPeriodAnimation(){
+  const vc = document.getElementById('viewContainer');
+  vc.classList.remove('slide-fwd','slide-back');
+  void vc.offsetWidth; // restart animation
+  vc.classList.add(navDirection >= 0 ? 'slide-fwd' : 'slide-back');
 }
 
 function renderCurrentView(){
@@ -540,13 +681,18 @@ function renderCurrentView(){
       formatDateLabel(days[0]) + ' – ' + formatDateLabel(days[6]);
     renderWeekStats(days);
     renderMultiDayCharts(days);
-  } else {
+  } else if(currentView === 'month'){
     const days = monthDates(monthAnchor);
     document.getElementById('periodLabel').textContent =
       monthAnchor.toLocaleDateString(undefined, {month:'long', year:'numeric'});
     renderMonthStats(monthAnchor);
     renderMultiDayCharts(days);
+  } else {
+    document.getElementById('periodLabel').textContent = String(monthAnchor.getFullYear());
+    renderYearStats(monthAnchor);
+    renderYearView(monthAnchor);
   }
+  playPeriodAnimation();
 }
 
 function weekDates(anchor){
@@ -600,15 +746,50 @@ function jumpToDay(key){
 
 // ---- Stats ----
 
+// Pee size 4–6 reads as normal (teal); below 4 it interpolates progressively
+// toward red as it drops to 1 — a smaller spot is the thing worth noticing.
+function peeColor(v){
+  if(v >= 4) return '#2c6e6b';
+  const t = Math.max(0, Math.min(1, (4 - v) / 3));
+  return d3.interpolateRgb('#2c6e6b', '#a8412a')(t);
+}
+
+function warnStyleFor(level){
+  if(level === 2) return 'background:rgba(168,65,42,0.12);border-color:var(--error);';
+  if(level === 1) return 'background:rgba(201,154,58,0.16);border-color:#c99a3a;';
+  return '';
+}
+
 function renderStatsGrid(stats){
   const row = document.getElementById('statsRow');
   row.innerHTML = '';
   stats.forEach(s => {
     const div = document.createElement('div');
-    div.className = 'stat';
-    div.innerHTML = '<div class="num">'+s.num+'</div><div class="lbl">'+s.lbl+'</div>';
+    if(s.type === 'bar'){
+      div.className = 'stat';
+      const pct = Math.max(0, Math.min(100, (s.value/6)*100));
+      const color = peeColor(s.value);
+      div.innerHTML =
+        '<div class="lbl">'+s.lbl+'</div>' +
+        '<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+color+';"></div></div>' +
+        '<div class="num" style="font-size:0.85rem;margin-top:2px;color:'+color+';">'+s.value.toFixed(1)+'/6</div>';
+    } else {
+      div.className = 'stat';
+      div.setAttribute('style', warnStyleFor(s.warnLevel || 0));
+      div.innerHTML = '<div class="num">'+s.num+'</div><div class="lbl">'+s.lbl+'</div>';
+    }
     row.appendChild(div);
   });
+}
+
+function maxPeeGapHours(dayPee){
+  if(dayPee.length < 2) return null;
+  const sorted = [...dayPee].sort((a,b) => a.time - b.time);
+  let maxGap = 0;
+  for(let i=1; i<sorted.length; i++){
+    maxGap = Math.max(maxGap, (sorted[i].time - sorted[i-1].time)/3600000);
+  }
+  return maxGap;
 }
 
 function renderDayStats(date){
@@ -618,17 +799,27 @@ function renderDayStats(date){
   const avgRating = dayPee.length ? (dayPee.reduce((s,p)=>s+p.rating,0)/dayPee.length) : 0;
   const durations = dayStraining.map(s => Math.round((s.end - s.start)/60000));
   const ratings = dayPee.map(p => p.rating);
+  const longestStraining = durations.length ? Math.max(...durations) : null;
+  const gapHours = maxPeeGapHours(dayPee);
 
-  renderStatsGrid([
+  const peeCountWarn = dayPee.length && (dayPee.length < PEE_COUNT_LOW || dayPee.length > PEE_COUNT_HIGH) ? 2 : 0;
+  const gapWarn = gapHours === null ? 0 : (gapHours > MAX_PEE_GAP_HOURS ? 2 : (gapHours > MAX_PEE_GAP_HOURS*0.75 ? 1 : 0));
+  const strainWarn = longestStraining === null ? 0 : (longestStraining > MAX_STRAINING_MIN ? 2 : (longestStraining > MAX_STRAINING_MIN*0.7 ? 1 : 0));
+
+  const stats = [
     {num: dayStraining.length, lbl: 'Straining episodes'},
     {num: Math.round(totalMin) + ' min', lbl: 'Total straining'},
-    {num: dayPee.length, lbl: 'Pee events'},
-    {num: dayPee.length ? avgRating.toFixed(1) : '—', lbl: 'Avg spot size'},
+    {num: dayPee.length, lbl: 'Pee events', warnLevel: peeCountWarn},
     {num: durations.length ? Math.min(...durations) + ' min' : '—', lbl: 'Shortest straining'},
-    {num: durations.length ? Math.max(...durations) + ' min' : '—', lbl: 'Longest straining'},
-    {num: ratings.length ? Math.min(...ratings) : '—', lbl: 'Smallest pee'},
-    {num: ratings.length ? Math.max(...ratings) : '—', lbl: 'Largest pee'}
-  ]);
+    {num: longestStraining !== null ? longestStraining + ' min' : '—', lbl: 'Longest straining', warnLevel: strainWarn},
+    {num: gapHours !== null ? gapHours.toFixed(1) + 'h' : '—', lbl: 'Longest gap between pees', warnLevel: gapWarn}
+  ];
+  if(dayPee.length){
+    stats.push({type:'bar', value: avgRating, lbl: 'Avg spot size'});
+    stats.push({type:'bar', value: Math.min(...ratings), lbl: 'Smallest pee'});
+    stats.push({type:'bar', value: Math.max(...ratings), lbl: 'Largest pee'});
+  }
+  renderStatsGrid(stats);
 }
 
 function renderWeekStats(days){
@@ -636,12 +827,13 @@ function renderWeekStats(days){
   const wkPee = pee.filter(p => days.includes(p.date));
   const totalMin = wkStraining.reduce((sum,s) => sum + (s.end - s.start)/60000, 0);
   const avgRating = wkPee.length ? (wkPee.reduce((s,p)=>s+p.rating,0)/wkPee.length) : 0;
-  renderStatsGrid([
+  const stats = [
     {num: wkStraining.length, lbl: 'Straining episodes'},
     {num: Math.round(totalMin) + ' min', lbl: 'Total straining'},
-    {num: wkPee.length, lbl: 'Pee events'},
-    {num: wkPee.length ? avgRating.toFixed(1) : '—', lbl: 'Avg spot size'}
-  ]);
+    {num: wkPee.length, lbl: 'Pee events'}
+  ];
+  if(wkPee.length) stats.push({type:'bar', value: avgRating, lbl: 'Avg spot size'});
+  renderStatsGrid(stats);
 }
 
 function renderMonthStats(anchor){
@@ -657,6 +849,68 @@ function renderMonthStats(anchor){
     {num: mPee.length, lbl: 'Pee events'},
     {num: mPee.length ? avgRating.toFixed(1) : '—', lbl: 'Avg spot size'}
   ]);
+}
+
+// Averages/max/min are computed per DAY across the whole year (not per
+// month), since "average daily straining events" etc. is what's meaningful
+// for spotting overall patterns.
+function renderYearStats(anchor){
+  const y = anchor.getFullYear();
+  const yearDays = [];
+  const start = new Date(y,0,1), end = new Date(y,11,31);
+  for(let d = new Date(start); d <= end; d.setDate(d.getDate()+1)){
+    const key = dateKeyFromDate(d);
+    if(dayInRange(key)) yearDays.push(key);
+  }
+  if(!yearDays.length){
+    renderStatsGrid([{num:'—', lbl:'No data this year'}]);
+    return;
+  }
+  const perDay = computePerDay(yearDays);
+  const strainCounts = perDay.map(d => straining.filter(s=>s.date===d.date).length);
+  const strainMins = perDay.map(d => d.mins);
+  const peeCounts = perDay.map(d => d.peeCount);
+
+  const avg = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
+
+  renderStatsGrid([
+    {num: avg(strainCounts).toFixed(1), lbl: 'Avg daily straining events'},
+    {num: Math.max(...strainCounts), lbl: 'Max daily straining events'},
+    {num: Math.min(...strainCounts), lbl: 'Min daily straining events'},
+    {num: Math.round(avg(strainMins)) + ' min', lbl: 'Avg daily straining time'},
+    {num: Math.round(Math.max(...strainMins)) + ' min', lbl: 'Max daily straining time'},
+    {num: Math.round(Math.min(...strainMins)) + ' min', lbl: 'Min daily straining time'},
+    {num: avg(peeCounts).toFixed(1), lbl: 'Avg daily pee events'},
+    {num: Math.max(...peeCounts), lbl: 'Max daily pee events'},
+    {num: Math.min(...peeCounts), lbl: 'Min daily pee events'}
+  ]);
+}
+
+function renderYearView(anchor){
+  const y = anchor.getFullYear();
+  const container = document.getElementById('viewContainer');
+  container.innerHTML =
+    '<div class="chart-card"><h3>Total straining (min) by month</h3><div id="chartYearMins"></div></div>' +
+    '<div class="chart-card"><h3>Pee events by month</h3><div id="chartYearPeeCount"></div></div>' +
+    '<div class="chart-card"><h3>Total pee score by month</h3><div id="chartYearPeeSum"></div></div>';
+
+  const months = [];
+  for(let m=0; m<12; m++){
+    const label = new Date(y,m,1).toLocaleDateString(undefined,{month:'short'});
+    const prefix = y + '-' + String(m+1).padStart(2,'0');
+    const s = straining.filter(x => x.date.startsWith(prefix));
+    const p = pee.filter(x => x.date.startsWith(prefix));
+    months.push({
+      date: label,
+      mins: s.reduce((sum,x)=>sum+(x.end-x.start)/60000,0),
+      peeCount: p.length,
+      peeSum: p.reduce((sum,x)=>sum+x.rating,0)
+    });
+  }
+
+  drawBarChart('chartYearMins', months, 'var(--strain)', d=>d.mins, v=>Math.round(v)+'m', true);
+  drawBarChart('chartYearPeeCount', months, 'var(--pee)', d=>d.peeCount, v=>String(v), true);
+  drawBarChart('chartYearPeeSum', months, 'var(--pee)', d=>d.peeSum, v=>String(v), true);
 }
 
 // ---- Tooltip ----
@@ -677,35 +931,33 @@ function fmtTime(d){
   return d.toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit', hour12:false});
 }
 
-// Attaches unified drag behavior to a chart overlay: continuous small movement
-// scrubs (reads data under the pointer), while a decisive horizontal swipe
-// (long, mostly-horizontal motion) changes the period instead — the same
-// distinction Health app's charts make. Pointer Events unify mouse and touch.
-function attachDragGestures(overlaySelection, onMove, onSwipe){
-  let startX = null, startY = null, dragging = false, totalDX = 0, totalDY = 0;
-
+// Attaches scrub-only drag behavior to a chart overlay. Charts never
+// complete a swipe/period-change themselves — that's handled by a separate
+// zone (see setupSwipeZone) so a drag that starts on a chart always just
+// reads data, no matter how far or which direction it moves.
+// setPointerCapture ensures pointermove/pointerup keep targeting this exact
+// overlay even if the finger drifts over other elements (like the floating
+// tooltip) — that drift was interrupting scrubs before.
+// touch-action:none stops the browser's own scroll/pan gesture from
+// competing with the drag.
+function attachDragGestures(overlaySelection, onMove){
   overlaySelection.style('cursor', 'crosshair');
+  overlaySelection.style('touch-action', 'none');
   overlaySelection.on('pointerdown', function(event){
     event.stopPropagation();
-    dragging = true; totalDX = 0; totalDY = 0;
-    startX = event.clientX; startY = event.clientY;
+    event.preventDefault();
+    this.setPointerCapture(event.pointerId);
     const offsetX = event.offsetX ?? d3.pointer(event, this)[0];
     onMove(offsetX, event);
   });
   overlaySelection.on('pointermove', function(event){
-    if(!dragging) return;
+    if(event.buttons === 0 && event.pointerType !== 'touch') return;
     event.stopPropagation();
-    totalDX = event.clientX - startX;
-    totalDY = event.clientY - startY;
     const offsetX = event.offsetX ?? d3.pointer(event, this)[0];
     onMove(offsetX, event);
   });
-  overlaySelection.on('pointerup pointerleave', function(event){
-    if(dragging && Math.abs(totalDX) > 70 && Math.abs(totalDY) < 45){
-      hideTooltip();
-      onSwipe(totalDX < 0 ? 1 : -1);
-    }
-    dragging = false;
+  overlaySelection.on('pointerup pointerleave pointercancel', function(event){
+    event.stopPropagation();
   });
   overlaySelection.on('click', function(event){ event.stopPropagation(); });
 }
@@ -1000,8 +1252,7 @@ function drawCoreDayChart(containerId, date, drawExtra){
     .attr('fill', 'transparent');
 
   attachDragGestures(overlay,
-    (rawOffsetX, event) => showTooltip(event, updateScrub(rawOffsetX - margin.left).join('\n')),
-    (dir) => shiftPeriod(dir)
+    (rawOffsetX, event) => showTooltip(event, updateScrub(rawOffsetX - margin.left).join('\n'))
   );
 }
 
@@ -1021,7 +1272,7 @@ function renderMultiDayCharts(days){
   drawBarChart('chartPeeSum', stats, 'var(--pee)', d => d.peeSum, v => String(v));
 }
 
-function drawBarChart(containerId, stats, color, valueFn, formatFn){
+function drawBarChart(containerId, stats, color, valueFn, formatFn, labelsOnly){
   const area = document.getElementById(containerId);
   const margin = {top: 18, right: 20, bottom: 24, left: 30};
   const width = Math.max(area.clientWidth || 320, 260);
@@ -1047,6 +1298,7 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn){
   g.append('g').attr('class','axis')
     .attr('transform', `translate(0,${plotHeight})`)
     .call(d3.axisBottom(x).tickValues(tickVals).tickFormat(d => {
+      if(labelsOnly) return d;
       const [yy,mm,dd] = d.split('-').map(Number);
       const dt = new Date(yy,mm-1,dd);
       return isWeek ? dt.toLocaleDateString(undefined,{weekday:'short'}) : String(dd);
@@ -1060,12 +1312,12 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn){
     .attr('y', d => y(valueFn(d)))
     .attr('height', d => plotHeight - y(valueFn(d)))
     .attr('rx', 3)
-    .attr('fill', d => dayInRange(d.date) ? color : 'var(--line)')
+    .attr('fill', d => (labelsOnly || dayInRange(d.date)) ? color : 'var(--line)')
     .attr('opacity', d => d.date === todayKey ? 1 : 0.85)
-    .style('cursor', d => dayInRange(d.date) ? 'pointer' : 'default')
+    .style('cursor', d => (!labelsOnly && dayInRange(d.date)) ? 'pointer' : 'default')
     .on('click', function(event, d){
       event.stopPropagation();
-      if(dayInRange(d.date)) jumpToDay(d.date);
+      if(!labelsOnly && dayInRange(d.date)) jumpToDay(d.date);
     });
 
   const guideRect = g.append('rect')
@@ -1077,8 +1329,13 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn){
     const idx = Math.max(0, Math.min(n-1, Math.floor(offsetX / (plotWidth / n))));
     const d = stats[idx];
     guideRect.attr('x', x(d.date)).attr('width', x.bandwidth()).style('opacity', 1);
-    const [yy,mm,dd] = d.date.split('-').map(Number);
-    const label = new Date(yy,mm-1,dd).toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'});
+    let label;
+    if(labelsOnly){
+      label = d.date;
+    } else {
+      const [yy,mm,dd] = d.date.split('-').map(Number);
+      label = new Date(yy,mm-1,dd).toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'});
+    }
     return label + '\n' + formatFn(valueFn(d));
   }
 
@@ -1087,42 +1344,43 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn){
     .attr('fill', 'transparent');
 
   attachDragGestures(overlay,
-    (rawOffsetX, event) => showTooltip(event, updateScrub(rawOffsetX - margin.left)),
-    (dir) => shiftPeriod(dir)
+    (rawOffsetX, event) => showTooltip(event, updateScrub(rawOffsetX - margin.left))
   );
 }
 
-// Swipe between periods: dragging over the nav/stats zone (not the chart itself,
-// which is reserved for scrubbing through data points). Pointer Events unify
-// mouse and touch, so testing with a mouse behaves like a real finger swipe.
-(function setupSwipe(){
+// Swipe between periods: dragging over the header/stats zone (never the
+// chart itself — charts are scrub-only, see attachDragGestures above, so a
+// swipe that starts on a chart can never complete a period change).
+// Uses angle-based detection (how much MORE horizontal than vertical the
+// motion is) rather than a fixed vertical cutoff, since a natural swipe's
+// vertical wobble scales with how far you've dragged — a fixed pixel cutoff
+// made longer swipes fail inconsistently. touch-action:none stops the page
+// from trying to scroll during the gesture.
+(function setupSwipeZone(){
   const zone = document.getElementById('appArea');
-  let startX = null, startY = null, dragging = false;
+  zone.style.touchAction = 'pan-y';
+  let startX = null, startY = null, tracking = false;
 
   function onDown(e){
     if(e.target.closest('#viewContainer')) return;
-    startX = e.clientX; startY = e.clientY; dragging = true;
-  }
-  function onMove(e){
-    if(!dragging) return;
-    if(Math.abs(e.clientY - startY) > 40){ dragging = false; }
+    startX = e.clientX; startY = e.clientY; tracking = true;
   }
   function onUp(e){
-    if(!dragging || startX === null){ dragging = false; return; }
+    if(!tracking || startX === null){ tracking = false; return; }
+    tracking = false;
     const dx = e.clientX - startX;
-    dragging = false;
-    if(Math.abs(dx) > 60){
-      if(dx < 0) shiftPeriod(1); else shiftPeriod(-1);
-    }
+    const dy = e.clientY - startY;
+    if(Math.abs(dx) < 55) return;
+    if(Math.abs(dx) < Math.abs(dy) * 1.6) return; // too vertical — not a swipe
+    if(dx < 0) shiftPeriod(1); else shiftPeriod(-1);
   }
   zone.addEventListener('pointerdown', onDown);
-  zone.addEventListener('pointermove', onMove);
   zone.addEventListener('pointerup', onUp);
-  zone.addEventListener('pointercancel', () => dragging = false);
+  zone.addEventListener('pointercancel', () => tracking = false);
 })();
 
 window.addEventListener('resize', renderCurrentView);
-setDevice('mobile');
+initDeviceMode();
 loadData();
 </script>
 </body>
