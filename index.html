@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Puddle's Pee</title>
+<meta name="description" content="Cat urinary health tracker: straining, pee frequency and size, weather, feeding times, and stressful events.">
+<meta name="keywords" content="cat, cats, pee, peeing, urination, litter box, straining, urinary, UTI, blockage, health tracker, feeding, weather">
 <link id="faviconLink" rel="icon" href="">
 <link id="appleTouchIcon" rel="apple-touch-icon" href="">
 <!-- If you host a real icon file alongside this HTML (e.g. on GitHub Pages),
@@ -39,6 +41,7 @@
     --week-band-b:#f4f6f1;
   }
   *{box-sizing:border-box;}
+  html{font-size:115%;}
   html,body{height:100%;}
   body{
     margin:0;
@@ -108,17 +111,15 @@
 
   /* Period-change animation */
   @keyframes slideInFromRight{
-    0%{opacity:0; transform:translateX(60px) scale(0.97);}
-    60%{opacity:1; transform:translateX(-6px) scale(1.005);}
-    100%{opacity:1; transform:translateX(0) scale(1);}
+    from{opacity:0; transform:translateX(55px);}
+    to{opacity:1; transform:translateX(0);}
   }
   @keyframes slideInFromLeft{
-    0%{opacity:0; transform:translateX(-60px) scale(0.97);}
-    60%{opacity:1; transform:translateX(6px) scale(1.005);}
-    100%{opacity:1; transform:translateX(0) scale(1);}
+    from{opacity:0; transform:translateX(-55px);}
+    to{opacity:1; transform:translateX(0);}
   }
-  #periodContent.slide-fwd{animation:slideInFromRight .38s cubic-bezier(.25,.9,.35,1.15);}
-  #periodContent.slide-back{animation:slideInFromLeft .38s cubic-bezier(.25,.9,.35,1.15);}
+  #periodContent.slide-fwd{animation:slideInFromRight .48s cubic-bezier(0.22,0.61,0.36,1);}
+  #periodContent.slide-back{animation:slideInFromLeft .48s cubic-bezier(0.22,0.61,0.36,1);}
 
   .state-msg{padding:60px 16px;text-align:center;color:var(--ink-soft);font-size:0.95rem;}
   .state-msg.error{color:var(--error);}
@@ -961,9 +962,9 @@ function renderYearView(anchor){
   const y = anchor.getFullYear();
   const container = document.getElementById('viewContainer');
   container.innerHTML =
-    '<div class="chart-card"><h3>Total straining (min) by month</h3><div id="chartYearMins"></div></div>' +
-    '<div class="chart-card"><h3>Pee events by month</h3><div id="chartYearPeeCount"></div></div>' +
-    '<div class="chart-card"><h3>Total pee score by month</h3><div id="chartYearPeeSum"></div></div>';
+    '<div class="chart-card"><h3>Total straining (min) by month</h3><div class="chart-canvas" id="chartYearMins"></div></div>' +
+    '<div class="chart-card"><h3>Pee events by month</h3><div class="chart-canvas" id="chartYearPeeCount"></div></div>' +
+    '<div class="chart-card"><h3>Total pee score by month</h3><div class="chart-canvas" id="chartYearPeeSum"></div></div>';
 
   const months = [];
   for(let m=0; m<12; m++){
@@ -993,11 +994,10 @@ function renderYearView(anchor){
 function showTooltip(clientX, clientY, lines){
   const tooltip = d3.select('#tooltip');
   const html = lines.join('<br>');
-  const estWidth = 200;
-  const left = Math.max(8, Math.min(clientX - estWidth/2, window.innerWidth - estWidth - 8));
+  const clampedX = Math.max(60, Math.min(clientX, window.innerWidth - 60));
   tooltip.style('opacity',1)
-    .style('left', left + 'px')
-    .style('transform', 'translateY(calc(-100% - 10px))')
+    .style('left', clampedX + 'px')
+    .style('transform', 'translate(-50%, calc(-100% - 10px))')
     .style('top', clientY + 'px')
     .html(html);
 }
@@ -1045,7 +1045,7 @@ const SCROLL_TAKEOVER_DY = 32;   // px of vertical travel before scroll can win
 const SCROLL_TAKEOVER_RATIO = 2.2; // how much more vertical than horizontal it must be
 
 function attachDragGestures(overlaySelection, onMove, onEnd){
-  let mode = null; // null | 'scrub' | 'scroll'
+  let mode = null; // null | 'scroll' (locks in once triggered; otherwise every move defaults to scrub)
   let startX = 0, startY = 0, lastY = 0, scrollEl = null;
 
   overlaySelection.style('cursor', 'crosshair');
@@ -1061,20 +1061,20 @@ function attachDragGestures(overlaySelection, onMove, onEnd){
   });
   overlaySelection.on('pointermove', function(event){
     const dx = event.clientX - startX, dy = event.clientY - startY;
-    if(mode === null){
-      if(Math.abs(dy) > SCROLL_TAKEOVER_DY && Math.abs(dy) > Math.abs(dx) * SCROLL_TAKEOVER_RATIO){
-        mode = 'scroll';
-        hideTooltip();
-        if(onEnd) onEnd();
-      } else if(Math.abs(dx) > 4){
-        mode = 'scrub';
-      }
+    if(mode !== 'scroll' &&
+       Math.abs(dy) > SCROLL_TAKEOVER_DY && Math.abs(dy) > Math.abs(dx) * SCROLL_TAKEOVER_RATIO){
+      mode = 'scroll';
+      lastY = event.clientY; // reset reference so the takeover doesn't jump
+      hideTooltip();
+      if(onEnd) onEnd();
     }
     if(mode === 'scroll'){
       if(scrollEl) scrollEl.scrollTop -= (event.clientY - lastY);
       lastY = event.clientY;
       return;
     }
+    // Default: scrub. No separate low-bar "commit" check — that was locking
+    // out the scroll test almost instantly on any real touch's natural wobble.
     event.stopPropagation();
     const offsetX = event.offsetX ?? d3.pointer(event, this)[0];
     onMove(offsetX, event);
@@ -1095,19 +1095,19 @@ const CHART_ICONS = { weather: '🌦️', feeding: '🍽️', events: '⚡' };
 function renderDayView(date){
   const container = document.getElementById('viewContainer');
   container.innerHTML =
-    `<div class="chart-card"><h3>${CHART_ICONS.weather} Weather</h3><div id="chartWeather"></div>` +
+    `<div class="chart-card"><h3>${CHART_ICONS.weather} Weather</h3><div class="chart-canvas" id="chartWeather"></div>` +
       '<div class="legend">' +
         '<span><span class="swatch" style="background:var(--strain-soft);border:1px solid var(--strain);"></span>Straining</span>' +
         '<span><span class="swatch" style="background:var(--pee);"></span>Pee (height = size)</span>' +
         '<span><span class="swatch" style="background:#1c4f73;"></span>Weather (height = intensity)</span>' +
       '</div></div>' +
-    `<div class="chart-card"><h3>${CHART_ICONS.feeding} Feedings</h3><div id="chartFeeding"></div>` +
+    `<div class="chart-card"><h3>${CHART_ICONS.feeding} Feedings</h3><div class="chart-canvas" id="chartFeeding"></div>` +
       '<div class="legend">' +
         '<span><span class="swatch" style="background:var(--strain-soft);border:1px solid var(--strain);"></span>Straining</span>' +
         '<span><span class="swatch" style="background:var(--pee);"></span>Pee (height = size)</span>' +
         '<span><span class="swatch" style="background:#c99a3a;"></span>Feeding time</span>' +
       '</div></div>' +
-    `<div class="chart-card"><h3>${CHART_ICONS.events} Stressful events</h3><div id="chartEvents"></div>` +
+    `<div class="chart-card"><h3>${CHART_ICONS.events} Stressful events</h3><div class="chart-canvas" id="chartEvents"></div>` +
       '<div class="legend">' +
         '<span><span class="swatch" style="background:var(--strain-soft);border:1px solid var(--strain);"></span>Straining</span>' +
         '<span><span class="swatch" style="background:var(--pee);"></span>Pee (height = size)</span>' +
@@ -1185,8 +1185,9 @@ function drawFeedingLines(g, x, plotWidth, plotHeight, dayStart){
     .attr('stroke-dasharray', '4,3').style('opacity', 0.7);
 
   const tagW = 50, tagH = 15;
+  const tagX = d => Math.max(tagW/2, Math.min(plotWidth - tagW/2, x(d.time)));
   const tags = g.selectAll('.feedtag').data(marks).enter().append('g')
-    .attr('transform', d => `translate(${x(d.time)},${-13 - d.row*15})`);
+    .attr('transform', d => `translate(${tagX(d)},${-13 - d.row*15})`);
   tags.append('rect')
     .attr('x', -tagW/2).attr('y', -tagH/2).attr('width', tagW).attr('height', tagH)
     .attr('rx', 4).attr('fill', '#c99a3a');
@@ -1281,17 +1282,22 @@ function drawCoreDayChart(containerId, date, drawExtra){
 
   // Night shading: mostly a solid, clearly-readable night tint, with only a
   // short twilight transition around sunrise/sunset — not a fade across the
-  // whole night. Shown on every chart for shared day/night context.
+  // whole night. A subtle vignette makes the outer edges (deep night, near
+  // midnight) a touch darker/bluer than the middle of the night span, for a
+  // bit of visual depth without raising the overall opacity.
   if(weather && weather.sunrise && weather.sunset){
     const NIGHT_OPACITY = 0.13;
+    const NIGHT_EDGE_OPACITY = 0.2;
     const TWILIGHT_MIN = 70; // minutes of fade on either side of sunrise/sunset
-    const nightColor = c => `rgba(20,28,54,${c})`;
+    const nightColor = c => `rgba(16,22,46,${c})`;
     const twilightStart = new Date(weather.sunrise.getTime() - TWILIGHT_MIN*60000);
     const twilightEnd = new Date(weather.sunset.getTime() + TWILIGHT_MIN*60000);
 
     const defsNight = g.append('defs');
     const gradMorningId = 'nightAM_' + containerId + '_' + date.replace(/-/g,'');
     const gradEveningId = 'nightPM_' + containerId + '_' + date.replace(/-/g,'');
+    const gradEdgeAMId = 'nightEdgeAM_' + containerId + '_' + date.replace(/-/g,'');
+    const gradEdgePMId = 'nightEdgePM_' + containerId + '_' + date.replace(/-/g,'');
 
     defsNight.append('linearGradient')
       .attr('id', gradMorningId).attr('gradientUnits','userSpaceOnUse')
@@ -1307,10 +1313,26 @@ function drawCoreDayChart(containerId, date, drawExtra){
       .data([{o:'0%', c:nightColor(0)},{o:'100%', c:nightColor(NIGHT_OPACITY)}])
       .enter().append('stop').attr('offset', d=>d.o).attr('stop-color', d=>d.c);
 
-    // Solid night (before the morning twilight window starts)
+    // Deep-night vignette: slightly darker right at the day boundary (the
+    // middle of the actual night), easing back to the base night tone.
+    defsNight.append('linearGradient')
+      .attr('id', gradEdgeAMId).attr('gradientUnits','userSpaceOnUse')
+      .attr('x1', x(dayStart)).attr('y1',0).attr('x2', x(twilightStart)).attr('y2',0)
+      .selectAll('stop')
+      .data([{o:'0%', c:nightColor(NIGHT_EDGE_OPACITY)},{o:'100%', c:nightColor(NIGHT_OPACITY)}])
+      .enter().append('stop').attr('offset', d=>d.o).attr('stop-color', d=>d.c);
+
+    defsNight.append('linearGradient')
+      .attr('id', gradEdgePMId).attr('gradientUnits','userSpaceOnUse')
+      .attr('x1', x(twilightEnd)).attr('y1',0).attr('x2', x(dayEnd)).attr('y2',0)
+      .selectAll('stop')
+      .data([{o:'0%', c:nightColor(NIGHT_OPACITY)},{o:'100%', c:nightColor(NIGHT_EDGE_OPACITY)}])
+      .enter().append('stop').attr('offset', d=>d.o).attr('stop-color', d=>d.c);
+
+    // Solid night (before the morning twilight window starts) — vignette gradient
     g.append('rect')
       .attr('x', x(dayStart)).attr('width', Math.max(0, x(twilightStart) - x(dayStart)))
-      .attr('y', 0).attr('height', plotHeight).attr('fill', nightColor(NIGHT_OPACITY));
+      .attr('y', 0).attr('height', plotHeight).attr('fill', 'url(#' + gradEdgeAMId + ')');
     // Morning twilight fade (night -> day)
     g.append('rect')
       .attr('x', x(twilightStart)).attr('width', Math.max(0, x(weather.sunrise) - x(twilightStart)))
@@ -1319,10 +1341,10 @@ function drawCoreDayChart(containerId, date, drawExtra){
     g.append('rect')
       .attr('x', x(weather.sunset)).attr('width', Math.max(0, x(twilightEnd) - x(weather.sunset)))
       .attr('y', 0).attr('height', plotHeight).attr('fill', 'url(#' + gradEveningId + ')');
-    // Solid night (after the evening twilight window ends)
+    // Solid night (after the evening twilight window ends) — vignette gradient
     g.append('rect')
       .attr('x', x(twilightEnd)).attr('width', Math.max(0, x(dayEnd) - x(twilightEnd)))
-      .attr('y', 0).attr('height', plotHeight).attr('fill', nightColor(NIGHT_OPACITY));
+      .attr('y', 0).attr('height', plotHeight).attr('fill', 'url(#' + gradEdgePMId + ')');
 
     [weather.sunrise, weather.sunset].forEach(t => {
       g.append('line')
@@ -1442,9 +1464,9 @@ function drawCoreDayChart(containerId, date, drawExtra){
 function renderMultiDayCharts(days){
   const container = document.getElementById('viewContainer');
   container.innerHTML =
-    '<div class="chart-card"><h3>Total straining (min)</h3><div id="chartMins"></div></div>' +
-    '<div class="chart-card"><h3>Number of pee events</h3><div id="chartPeeCount"></div></div>' +
-    '<div class="chart-card"><h3>Total pee score (sum of sizes)</h3><div id="chartPeeSum"></div></div>';
+    '<div class="chart-card"><h3>Total straining (min)</h3><div class="chart-canvas" id="chartMins"></div></div>' +
+    '<div class="chart-card"><h3>Number of pee events</h3><div class="chart-canvas" id="chartPeeCount"></div></div>' +
+    '<div class="chart-card"><h3>Total pee score (sum of sizes)</h3><div class="chart-canvas" id="chartPeeSum"></div></div>';
 
   const stats = computePerDay(days);
   drawBarChart('chartMins', stats, 'var(--strain)', d => d.mins, v => Math.round(v) + 'm');
@@ -1457,7 +1479,7 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn, labelsOnly){
   const margin = {top: 18, right: 20, bottom: 24, left: 30};
   const width = Math.max(area.clientWidth || 320, 260);
   const plotWidth = width - margin.left - margin.right;
-  const plotHeight = 160;
+  const plotHeight = 190;
   const n = stats.length;
 
   const values = stats.map(valueFn);
@@ -1631,7 +1653,7 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn, labelsOnly){
   let startX = null, startY = null, tracking = false;
 
   function onDown(e){
-    if(e.target.closest('#viewContainer')) return;
+    if(e.target.closest('.chart-canvas')) return;
     startX = e.clientX; startY = e.clientY; tracking = true;
   }
   function onUp(e){
