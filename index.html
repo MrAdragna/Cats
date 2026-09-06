@@ -42,7 +42,7 @@
   }
   *{box-sizing:border-box;}
   html{font-size:115%;}
-  html,body{height:100%; overscroll-behavior-y:none;}
+  html,body{height:100%;}
   body{
     margin:0;
     background:var(--paper);
@@ -79,7 +79,6 @@
     box-shadow:0 0 0 10px #1c1b19, 0 0 0 12px #3a3835;
     overflow-y:auto;
     overflow-x:hidden;
-    overscroll-behavior-y:none;
   }
   /* Real phone / installed web app: no fake bezel, fills the actual screen.
      Safe-area padding keeps content clear of notches/home indicators. */
@@ -141,7 +140,6 @@
   .today-btn.current{background:var(--accent);color:#fff;}
   .entry-type-btn{padding:10px 4px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink-soft);font-size:0.82rem;font-weight:600;cursor:pointer;}
   .entry-type-btn.active{background:var(--ink);color:#fff;border-color:var(--ink);}
-  .swipe-hint{text-align:center;font-size:0.68rem;color:var(--ink-soft);opacity:0.6;margin:2px 0 10px;}
 
   .stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
   .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:110px;flex:1;}
@@ -224,7 +222,6 @@
             <button onclick="shiftPeriod(1)" aria-label="Next">›</button>
             <button id="todayBtn" class="today-btn" onclick="goToToday()">Today</button>
           </div>
-          <div class="swipe-hint" id="swipeHint">‹ swipe for previous/next day ›</div>
         </div>
       </div>
 
@@ -710,9 +707,6 @@ function setView(view){
   document.getElementById('dateSelect').style.display = view === 'day' ? '' : 'none';
   document.getElementById('periodLabel').style.display = view === 'day' ? 'none' : '';
   document.getElementById('dayNav').style.display = view === 'list' ? 'none' : 'flex';
-  const hints = {day:'day', week:'week', month:'month', year:'year'};
-  document.getElementById('swipeHint').style.display = view === 'list' ? 'none' : '';
-  document.getElementById('swipeHint').textContent = view === 'list' ? '' : 'Drag chart to inspect · swipe further to change ' + hints[view];
   renderCurrentView();
 }
 
