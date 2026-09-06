@@ -42,7 +42,7 @@
   }
   *{box-sizing:border-box;}
   html{font-size:115%;}
-  html,body{height:100%; overscroll-behavior-y:contain;}
+  html,body{height:100%; overscroll-behavior-y:none;}
   body{
     margin:0;
     background:var(--paper);
@@ -79,7 +79,7 @@
     box-shadow:0 0 0 10px #1c1b19, 0 0 0 12px #3a3835;
     overflow-y:auto;
     overflow-x:hidden;
-    overscroll-behavior-y:contain;
+    overscroll-behavior-y:none;
   }
   /* Real phone / installed web app: no fake bezel, fills the actual screen.
      Safe-area padding keeps content clear of notches/home indicators. */
@@ -158,12 +158,32 @@
   .list-table tr:nth-child(even){background:var(--band-a);}
   .list-controls{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
   .list-controls select{flex:1;min-width:100px;padding:7px 8px;border:1px solid var(--line);border-radius:7px;background:var(--card);font-size:0.78rem;color:var(--ink);}
+  .list-sort-toggle{flex:1;min-width:100px;padding:7px 8px;border:1px solid var(--accent);border-radius:7px;background:var(--card);color:var(--accent);font-size:0.78rem;font-weight:600;cursor:pointer;}
   .list-day-header td{background:var(--ink);color:#fff;font-weight:700;font-size:0.78rem;padding:8px;border-bottom:none;}
 
   .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;padding:0 6px;font-size:0.76rem;color:var(--ink-soft);}
   .legend .swatch{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px;}
 
   .tooltip{position:fixed;pointer-events:none;background:var(--ink);color:#fff;padding:8px 12px;border-radius:8px;font-size:0.78rem;opacity:0;transition:opacity .08s;z-index:50;white-space:nowrap;line-height:1.6;box-shadow:0 4px 14px rgba(0,0,0,0.25);}
+
+  .fab-add{
+    position:fixed;
+    right:20px;
+    bottom:max(20px, calc(env(safe-area-inset-bottom) + 14px));
+    width:60px; height:60px;
+    border-radius:50%;
+    background:var(--strain);
+    color:#fff;
+    font-size:2.1rem;
+    font-weight:300;
+    line-height:1;
+    border:none;
+    box-shadow:0 6px 18px rgba(0,0,0,0.32);
+    cursor:pointer;
+    z-index:55;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .fab-add:active{transform:scale(0.93);}
 
   .pull-refresh-bar{
     height:0; overflow:hidden;
@@ -213,7 +233,6 @@
             <button id="tabMonth" onclick="setView('month')">Month</button>
             <button id="tabYear" onclick="setView('year')">Year</button>
             <button id="tabList" onclick="setView('list')">List</button>
-            <button id="addEventBtn" onclick="toggleAddEventForm()" style="flex:0 0 auto;width:36px;">+</button>
           </div>
 
           <div class="day-nav" id="dayNav">
@@ -289,6 +308,7 @@
 </div>
 
 <div class="tooltip" id="tooltip"></div>
+<button id="fabAdd" class="fab-add" onclick="toggleAddEventForm()" aria-label="Add entry" style="display:none;">+</button>
 
 <script>
 // Replace with your deployed Apps Script Web App URL.
@@ -358,14 +378,17 @@ function showState(kind, message){
   const area = document.getElementById('stateArea');
   const app = document.getElementById('appArea');
   const nav = document.getElementById('stickyNav');
+  const fab = document.getElementById('fabAdd');
   if(kind === 'app'){
     area.style.display = 'none';
     app.style.display = 'block';
     nav.style.display = 'block';
+    fab.style.display = 'flex';
     return;
   }
   app.style.display = 'none';
   nav.style.display = 'none';
+  fab.style.display = 'none';
   area.style.display = 'block';
   const spinner = kind === 'loading' ? '<div class="spinner"></div>' : '';
   area.innerHTML = '<div class="state-msg' + (kind==='error' ? ' error' : '') + '">' + spinner + message + '</div>';
@@ -809,23 +832,29 @@ function renderListView(){
           '<option value="straining">Straining only</option>' +
           '<option value="pee">Pee only</option>' +
         '</select>' +
-        '<select id="listSortSel" onchange="onListControlChange()">' +
-          '<option value="desc">Newest first</option>' +
-          '<option value="asc">Oldest first</option>' +
-        '</select>' +
+        '<button id="listSortBtn" class="list-sort-toggle" onclick="toggleListSort()"></button>' +
       '</div>' +
       '<div id="listBody"></div>' +
     '</div>';
   document.getElementById('listRangeSel').value = listRange;
   document.getElementById('listTypeSel').value = listType;
-  document.getElementById('listSortSel').value = listSort;
+  updateSortButtonLabel();
+  renderListBody();
+}
+
+function updateSortButtonLabel(){
+  document.getElementById('listSortBtn').textContent = listSort === 'desc' ? '↓ Newest first' : '↑ Oldest first';
+}
+
+function toggleListSort(){
+  listSort = listSort === 'desc' ? 'asc' : 'desc';
+  updateSortButtonLabel();
   renderListBody();
 }
 
 function onListControlChange(){
   listRange = document.getElementById('listRangeSel').value;
   listType = document.getElementById('listTypeSel').value;
-  listSort = document.getElementById('listSortSel').value;
   renderListBody();
 }
 
@@ -1777,9 +1806,12 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn, labelsOnly){
 
 (function setupSwipeZone(){
   const zone = document.querySelector('.wrap');
-  // No touch-action override here — this ancestor conflicting with the chart
-  // overlay's touch-action:none (a descendant) was likely the cause of the
-  // erratic scroll jumping; this zone's own logic doesn't need one.
+  // Blocks native horizontal edge-swipe navigation in this zone while still
+  // allowing vertical scroll-through. CSS touch-action correctly computes as
+  // the intersection with descendant values, so this doesn't conflict with
+  // chart overlays declaring touch-action:none — that turned out not to be
+  // the actual scroll-jump bug (a wrong overscroll-behavior value was).
+  zone.style.touchAction = 'pan-y';
   let startX = null, startY = null, tracking = false;
 
   function onDown(e){
