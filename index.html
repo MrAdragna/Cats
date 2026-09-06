@@ -18,7 +18,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Puddle's Pee">
+<meta name="apple-mobile-web-app-title" content="Cats">
 <meta name="theme-color" content="#1e2624">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <style>
@@ -82,13 +82,24 @@
     border-radius:0; box-shadow:none; overflow:visible;
   }
   .device-frame.native .wrap{
-    padding-top:max(22px, env(safe-area-inset-top));
     padding-bottom:max(50px, env(safe-area-inset-bottom));
     padding-left:max(18px, env(safe-area-inset-left));
     padding-right:max(18px, env(safe-area-inset-right));
   }
+  .device-frame.native .sticky-top{
+    padding-top:max(22px, env(safe-area-inset-top));
+  }
 
-  .wrap{padding:22px 18px 50px;}
+  .wrap{padding:0 18px 50px;}
+  /* Sticky nav/header bar: pinned at the top of the scrolling area at all
+     times (navigation, day/period picker, add-event button) — and since it
+     carries its own top padding (including the safe-area inset), the notch
+     stays covered by a solid background no matter how far you've scrolled. */
+  .sticky-top{
+    position:sticky; top:0; z-index:30;
+    background:var(--paper);
+    padding-top:22px; padding-bottom:2px;
+  }
   header{margin-bottom:16px;border-bottom:2px solid var(--ink);padding-bottom:12px;}
   header h1{font-size:1.3rem;margin:0;font-weight:700;letter-spacing:-0.01em;}
   header .sub{color:var(--ink-soft);font-size:0.85rem;}
@@ -96,8 +107,8 @@
   /* Period-change animation */
   @keyframes slideInFromRight{from{opacity:0; transform:translateX(18px);} to{opacity:1; transform:translateX(0);}}
   @keyframes slideInFromLeft{from{opacity:0; transform:translateX(-18px);} to{opacity:1; transform:translateX(0);}}
-  #viewContainer.slide-fwd{animation:slideInFromRight .22s ease-out;}
-  #viewContainer.slide-back{animation:slideInFromLeft .22s ease-out;}
+  #periodContent.slide-fwd{animation:slideInFromRight .22s ease-out;}
+  #periodContent.slide-back{animation:slideInFromLeft .22s ease-out;}
 
   .state-msg{padding:60px 16px;text-align:center;color:var(--ink-soft);font-size:0.95rem;}
   .state-msg.error{color:var(--error);}
@@ -147,12 +158,33 @@
 <div class="stage" id="stage">
   <div class="device-frame mobile" id="deviceFrame">
     <div class="wrap">
-      <header>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <img id="logoImg" src="" alt="" style="display:none;width:32px;height:32px;border-radius:8px;object-fit:cover;">
-          <h1>Puddle's Pee</h1>
+      <div class="sticky-top" id="stickyTop">
+        <header>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <img id="logoImg" src="" alt="" style="display:none;width:32px;height:32px;border-radius:8px;object-fit:cover;">
+            <h1>Puddle's Pee</h1>
+          </div>
+        </header>
+
+        <div id="stickyNav" style="display:none;">
+          <div class="view-tabs">
+            <button id="tabDay" onclick="setView('day')">Day</button>
+            <button id="tabWeek" onclick="setView('week')">Week</button>
+            <button id="tabMonth" onclick="setView('month')">Month</button>
+            <button id="tabYear" onclick="setView('year')">Year</button>
+            <button id="addEventBtn" onclick="toggleAddEventForm()" style="flex:0 0 auto;width:36px;">+</button>
+          </div>
+
+          <div class="day-nav" id="dayNav">
+            <button onclick="shiftPeriod(-1)" aria-label="Previous">‹</button>
+            <select id="dateSelect" class="day-only" onchange="onDateSelect()"></select>
+            <div id="periodLabel" class="period-label" style="display:none;"></div>
+            <button onclick="shiftPeriod(1)" aria-label="Next">›</button>
+            <button id="todayBtn" class="today-btn" onclick="goToToday()">Today</button>
+          </div>
+          <div class="swipe-hint" id="swipeHint">‹ swipe for previous/next day ›</div>
         </div>
-      </header>
+      </div>
 
       <div id="stateArea">
         <div class="state-msg" id="stateMsg">
@@ -162,14 +194,6 @@
       </div>
 
       <div id="appArea" style="display:none;">
-        <div class="view-tabs">
-          <button id="tabDay" onclick="setView('day')">Day</button>
-          <button id="tabWeek" onclick="setView('week')">Week</button>
-          <button id="tabMonth" onclick="setView('month')">Month</button>
-          <button id="tabYear" onclick="setView('year')">Year</button>
-          <button id="addEventBtn" onclick="toggleAddEventForm()" style="flex:0 0 auto;width:36px;">+</button>
-        </div>
-
         <div id="addEventForm" style="display:none;" class="chart-card">
           <div style="display:flex;flex-direction:column;gap:10px;">
             <div style="display:flex;gap:6px;">
@@ -213,18 +237,10 @@
           </div>
         </div>
 
-        <div class="day-nav" id="dayNav">
-          <button onclick="shiftPeriod(-1)" aria-label="Previous">‹</button>
-          <select id="dateSelect" class="day-only" onchange="onDateSelect()"></select>
-          <div id="periodLabel" class="period-label" style="display:none;"></div>
-          <button onclick="shiftPeriod(1)" aria-label="Next">›</button>
-          <button id="todayBtn" class="today-btn" onclick="goToToday()">Today</button>
+        <div id="periodContent">
+          <div class="stats" id="statsRow"></div>
+          <div id="viewContainer"></div>
         </div>
-        <div class="swipe-hint" id="swipeHint">‹ swipe for previous/next day ›</div>
-
-        <div class="stats" id="statsRow"></div>
-
-        <div id="viewContainer"></div>
       </div>
     </div>
   </div>
@@ -299,12 +315,15 @@ function initDeviceMode(){
 function showState(kind, message){
   const area = document.getElementById('stateArea');
   const app = document.getElementById('appArea');
+  const nav = document.getElementById('stickyNav');
   if(kind === 'app'){
     area.style.display = 'none';
     app.style.display = 'block';
+    nav.style.display = 'block';
     return;
   }
   app.style.display = 'none';
+  nav.style.display = 'none';
   area.style.display = 'block';
   const spinner = kind === 'loading' ? '<div class="spinner"></div>' : '';
   area.innerHTML = '<div class="state-msg' + (kind==='error' ? ' error' : '') + '">' + spinner + message + '</div>';
@@ -387,8 +406,8 @@ function updateIconsAndManifest(logoDataUri){
   document.getElementById('logoImg').style.display = '';
 
   const manifest = {
-    name: "Puddle's Pee",
-    short_name: "Puddle's Pee",
+    name: "Cats",
+    short_name: "Cats",
     start_url: '.',
     display: 'standalone',
     background_color: '#eef1ee',
@@ -397,6 +416,28 @@ function updateIconsAndManifest(logoDataUri){
   };
   const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
   document.getElementById('manifestLink').href = URL.createObjectURL(blob);
+}
+
+// A real default icon that works everywhere (including iOS home screen)
+// without depending on the sheet-photo test succeeding — drawn locally as a
+// PNG via canvas, so no external file/hosting is needed. Overridden
+// automatically later if the sheet provides a real photo.
+function generateDefaultIcon(){
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 512;
+  const ctx = c.getContext('2d');
+  const grad = ctx.createLinearGradient(0,0,512,512);
+  grad.addColorStop(0, '#3a6b63');
+  grad.addColorStop(1, '#1e2624');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(0,0,512,512,96) : ctx.rect(0,0,512,512);
+  ctx.fill();
+  ctx.font = '300px -apple-system, Helvetica, Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('🐾', 256, 290);
+  return c.toDataURL('image/png');
 }
 
 let currentEntryType = 'pee';
@@ -528,17 +569,21 @@ function loadData(){
       straining = (data.straining || []).map(s => {
         const start = new Date(s.start);
         const end = new Date(s.end);
-        return {date: dateKeyFromDate(start), start, end};
+        return {date: dateKeyFromDate(start), start, end, note: s.note || ''};
       });
       pee = (data.pee || []).map(p => {
         const time = new Date(p.time);
-        return {date: dateKeyFromDate(time), time, rating: Number(p.rating)};
+        return {date: dateKeyFromDate(time), time, rating: Number(p.rating), note: p.note || ''};
       });
       stressEvents = (data.events || []).map(ev => {
         const time = new Date(ev.time);
-        return {date: dateKeyFromDate(time), time, label: ev.label};
+        return {date: dateKeyFromDate(time), time, label: ev.label, rating: ev.rating};
       });
-      if(data.logo){ updateIconsAndManifest(data.logo); }
+      if(data.logo){
+        updateIconsAndManifest(data.logo);
+      } else if(data.logoDebug){
+        console.log('Logo not found — diagnostic info:', data.logoDebug);
+      }
 
       const eventDates = [...straining.map(s=>s.date), ...pee.map(p=>p.date)];
       const todayKey = dateKeyFromDate(new Date());
@@ -662,7 +707,7 @@ function updateTodayButton(){
 }
 
 function playPeriodAnimation(){
-  const vc = document.getElementById('viewContainer');
+  const vc = document.getElementById('periodContent');
   vc.classList.remove('slide-fwd','slide-back');
   void vc.offsetWidth; // restart animation
   vc.classList.add(navDirection >= 0 ? 'slide-fwd' : 'slide-back');
@@ -915,17 +960,32 @@ function renderYearView(anchor){
 
 // ---- Tooltip ----
 
-function showTooltip(event, text){
+// Positioned at a fixed spot near the top of the viewport rather than
+// following the finger — a floating tooltip under the touch point is
+// unreadable on a phone since the thumb itself covers it.
+function showTooltip(event, lines){
   event.stopPropagation();
   const tooltip = d3.select('#tooltip');
-  const html = text.split('\n').map(escapeHtml).join('<br>');
+  const html = lines.join('<br>');
   tooltip.style('opacity',1)
-    .style('left', Math.min(event.clientX + 10, window.innerWidth - 220) + 'px')
-    .style('top', Math.max(event.clientY - 52, 8) + 'px')
+    .style('left', '50%')
+    .style('transform', 'translateX(-50%)')
+    .style('top', 'max(78px, calc(env(safe-area-inset-top) + 68px))')
     .html(html);
 }
 function hideTooltip(){ d3.select('#tooltip').style('opacity',0); }
 document.addEventListener('click', hideTooltip);
+
+// Large, clear number + a plain visual bar (no text on the bar itself) for
+// any 1–6 style rating, used in place of "5.0/6" style text.
+function ratingBarHtml(value, max){
+  const pct = Math.max(0, Math.min(100, (value/max)*100));
+  return '<div style="display:flex;align-items:center;gap:8px;margin-top:2px;">'
+    + '<span style="font-size:1.3em;font-weight:800;line-height:1;">' + value + '</span>'
+    + '<span style="flex:1;min-width:70px;height:7px;background:rgba(255,255,255,0.25);border-radius:4px;overflow:hidden;">'
+    + '<span style="display:block;height:100%;width:' + pct + '%;background:#fff;border-radius:4px;"></span>'
+    + '</span></div>';
+}
 
 function fmtTime(d){
   return d.toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit', hour12:false});
@@ -935,17 +995,21 @@ function fmtTime(d){
 // complete a swipe/period-change themselves — that's handled by a separate
 // zone (see setupSwipeZone) so a drag that starts on a chart always just
 // reads data, no matter how far or which direction it moves.
-// setPointerCapture ensures pointermove/pointerup keep targeting this exact
-// overlay even if the finger drifts over other elements (like the floating
-// tooltip) — that drift was interrupting scrubs before.
-// touch-action:none stops the browser's own scroll/pan gesture from
-// competing with the drag.
-function attachDragGestures(overlaySelection, onMove){
+// touch-action:pan-y lets the browser take over as a normal vertical scroll
+// the instant it detects a mostly-vertical gesture — the platform's own
+// gesture-disambiguation is more reliable than anything we'd hand-roll, and
+// it means the container a chart sits in is naturally easier to scroll than
+// the chart is to scrub, since only a clearly-horizontal drag ever reaches
+// our JS at all.
+// setPointerCapture keeps pointermove/pointerup targeting this exact overlay
+// even if the finger drifts over other elements. onEnd (release/cancel)
+// always hides the tooltip and clears any highlight — nothing lingers after
+// you let go.
+function attachDragGestures(overlaySelection, onMove, onEnd){
   overlaySelection.style('cursor', 'crosshair');
-  overlaySelection.style('touch-action', 'none');
+  overlaySelection.style('touch-action', 'pan-y');
   overlaySelection.on('pointerdown', function(event){
     event.stopPropagation();
-    event.preventDefault();
     this.setPointerCapture(event.pointerId);
     const offsetX = event.offsetX ?? d3.pointer(event, this)[0];
     onMove(offsetX, event);
@@ -958,6 +1022,8 @@ function attachDragGestures(overlaySelection, onMove){
   });
   overlaySelection.on('pointerup pointerleave pointercancel', function(event){
     event.stopPropagation();
+    hideTooltip();
+    if(onEnd) onEnd();
   });
   overlaySelection.on('click', function(event){ event.stopPropagation(); });
 }
@@ -1077,7 +1143,11 @@ function drawStressEventLines(g, x, plotWidth, plotHeight, dayStart, weather, da
       const d = Math.abs(x(ev.time) - offsetX);
       if(d < dist){ dist = d; nearest = ev; }
     });
-    if(nearest && dist < 14) return [nearest.label + ' · ' + fmtTime(nearest.time)];
+    if(nearest && dist < 14){
+      let line = escapeHtml(nearest.label) + ' · ' + fmtTime(nearest.time);
+      if(nearest.rating) line += ratingBarHtml(nearest.rating, 6);
+      return [line];
+    }
     return null;
   };
 }
@@ -1123,36 +1193,51 @@ function drawCoreDayChart(containerId, date, drawExtra){
     .attr('y', 0).attr('height', plotHeight)
     .attr('fill', d => d.idx % 2 === 0 ? 'var(--band-a)' : 'var(--band-b)');
 
-  // Night shading: a true gradient — deepest right at the day boundaries
-  // (midnight, the middle of the night) fading out toward sunrise/sunset,
-  // rather than a flat block. Shown on every chart for shared day/night
-  // context. No text labels — the gradient itself reads as "night."
+  // Night shading: mostly a solid, clearly-readable night tint, with only a
+  // short twilight transition around sunrise/sunset — not a fade across the
+  // whole night. Shown on every chart for shared day/night context.
   if(weather && weather.sunrise && weather.sunset){
-    const nightColor = c => `rgba(22,32,58,${c})`;
+    const NIGHT_OPACITY = 0.4;
+    const TWILIGHT_MIN = 40; // minutes of fade on either side of sunrise/sunset
+    const nightColor = c => `rgba(20,28,54,${c})`;
+    const twilightStart = new Date(weather.sunrise.getTime() - TWILIGHT_MIN*60000);
+    const twilightEnd = new Date(weather.sunset.getTime() + TWILIGHT_MIN*60000);
+
     const defsNight = g.append('defs');
     const gradMorningId = 'nightAM_' + containerId + '_' + date.replace(/-/g,'');
     const gradEveningId = 'nightPM_' + containerId + '_' + date.replace(/-/g,'');
 
     defsNight.append('linearGradient')
       .attr('id', gradMorningId).attr('gradientUnits','userSpaceOnUse')
-      .attr('x1', x(dayStart)).attr('y1',0).attr('x2', x(weather.sunrise)).attr('y2',0)
+      .attr('x1', x(twilightStart)).attr('y1',0).attr('x2', x(weather.sunrise)).attr('y2',0)
       .selectAll('stop')
-      .data([{o:'0%', c:nightColor(0.32)},{o:'100%', c:nightColor(0)}])
+      .data([{o:'0%', c:nightColor(NIGHT_OPACITY)},{o:'100%', c:nightColor(0)}])
       .enter().append('stop').attr('offset', d=>d.o).attr('stop-color', d=>d.c);
 
     defsNight.append('linearGradient')
       .attr('id', gradEveningId).attr('gradientUnits','userSpaceOnUse')
-      .attr('x1', x(weather.sunset)).attr('y1',0).attr('x2', x(dayEnd)).attr('y2',0)
+      .attr('x1', x(weather.sunset)).attr('y1',0).attr('x2', x(twilightEnd)).attr('y2',0)
       .selectAll('stop')
-      .data([{o:'0%', c:nightColor(0)},{o:'100%', c:nightColor(0.32)}])
+      .data([{o:'0%', c:nightColor(0)},{o:'100%', c:nightColor(NIGHT_OPACITY)}])
       .enter().append('stop').attr('offset', d=>d.o).attr('stop-color', d=>d.c);
 
+    // Solid night (before the morning twilight window starts)
     g.append('rect')
-      .attr('x', x(dayStart)).attr('width', Math.max(0, x(weather.sunrise) - x(dayStart)))
+      .attr('x', x(dayStart)).attr('width', Math.max(0, x(twilightStart) - x(dayStart)))
+      .attr('y', 0).attr('height', plotHeight).attr('fill', nightColor(NIGHT_OPACITY));
+    // Morning twilight fade (night -> day)
+    g.append('rect')
+      .attr('x', x(twilightStart)).attr('width', Math.max(0, x(weather.sunrise) - x(twilightStart)))
       .attr('y', 0).attr('height', plotHeight).attr('fill', 'url(#' + gradMorningId + ')');
+    // Evening twilight fade (day -> night)
     g.append('rect')
-      .attr('x', x(weather.sunset)).attr('width', Math.max(0, x(dayEnd) - x(weather.sunset)))
+      .attr('x', x(weather.sunset)).attr('width', Math.max(0, x(twilightEnd) - x(weather.sunset)))
       .attr('y', 0).attr('height', plotHeight).attr('fill', 'url(#' + gradEveningId + ')');
+    // Solid night (after the evening twilight window ends)
+    g.append('rect')
+      .attr('x', x(twilightEnd)).attr('width', Math.max(0, x(dayEnd) - x(twilightEnd)))
+      .attr('y', 0).attr('height', plotHeight).attr('fill', nightColor(NIGHT_OPACITY));
+
     [weather.sunrise, weather.sunset].forEach(t => {
       g.append('line')
         .attr('x1', x(t)).attr('x2', x(t)).attr('y1', 0).attr('y2', plotHeight)
@@ -1229,10 +1314,14 @@ function drawCoreDayChart(containerId, date, drawExtra){
     let lines = [fmtTime(t)];
     if(containing){
       const mins = Math.round((containing.end - containing.start)/60000);
-      lines.push('Straining ' + fmtTime(containing.start) + '–' + fmtTime(containing.end) + ' (' + mins + ' min)');
+      let strainLine = 'Straining ' + fmtTime(containing.start) + '–' + fmtTime(containing.end) + ' (' + mins + ' min)';
+      if(containing.note) strainLine += '<br><span style="opacity:0.85;">' + escapeHtml(containing.note) + '</span>';
+      lines.push(strainLine);
     }
     if(showPee){
-      lines.push('Pee ' + fmtTime(nearestPee.time) + ' · size ' + nearestPee.rating + '/6');
+      let peeLine = 'Pee at ' + fmtTime(nearestPee.time) + ratingBarHtml(nearestPee.rating, 6);
+      if(nearestPee.note) peeLine += '<span style="opacity:0.85;">' + escapeHtml(nearestPee.note) + '</span>';
+      lines.push(peeLine);
     }
     const extraLines = extraTooltipFn ? extraTooltipFn(t, offsetX) : null;
     if(extraLines) lines.push(...extraLines);
@@ -1252,7 +1341,8 @@ function drawCoreDayChart(containerId, date, drawExtra){
     .attr('fill', 'transparent');
 
   attachDragGestures(overlay,
-    (rawOffsetX, event) => showTooltip(event, updateScrub(rawOffsetX - margin.left).join('\n'))
+    (rawOffsetX, event) => showTooltip(event, updateScrub(rawOffsetX - margin.left)),
+    () => guideLine.style('opacity', 0)
   );
 }
 
@@ -1292,8 +1382,25 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn, labelsOnly){
 
   const todayKey = todayKeyStr();
   const isWeek = n <= 7;
+  const isMonthGranularity = !labelsOnly && n > 7;
   const tickEvery = n > 15 ? Math.ceil(n / 10) : 1;
   const tickVals = stats.map(s=>s.date).filter((_,i) => i % tickEvery === 0);
+
+  // Alternate background shading per calendar week (Sun–Sat) so week
+  // boundaries are visible across a month of daily bars.
+  if(isMonthGranularity){
+    let weekIdx = 0, prevDow = null;
+    stats.forEach(s => {
+      const [yy,mm,dd] = s.date.split('-').map(Number);
+      const dow = new Date(yy,mm-1,dd).getDay();
+      if(prevDow !== null && dow === 0) weekIdx++;
+      prevDow = dow;
+      g.append('rect')
+        .attr('x', x(s.date)).attr('width', x.step())
+        .attr('y', 0).attr('height', plotHeight)
+        .attr('fill', weekIdx % 2 === 0 ? 'var(--band-a)' : 'var(--band-b)');
+    });
+  }
 
   g.append('g').attr('class','axis')
     .attr('transform', `translate(0,${plotHeight})`)
@@ -1336,7 +1443,7 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn, labelsOnly){
       const [yy,mm,dd] = d.date.split('-').map(Number);
       label = new Date(yy,mm-1,dd).toLocaleDateString(undefined,{weekday:'short', month:'short', day:'numeric'});
     }
-    return label + '\n' + formatFn(valueFn(d));
+    return [label, formatFn(valueFn(d))];
   }
 
   const overlay = svg.append('rect')
@@ -1344,7 +1451,8 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn, labelsOnly){
     .attr('fill', 'transparent');
 
   attachDragGestures(overlay,
-    (rawOffsetX, event) => showTooltip(event, updateScrub(rawOffsetX - margin.left))
+    (rawOffsetX, event) => showTooltip(event, updateScrub(rawOffsetX - margin.left)),
+    () => guideRect.style('opacity', 0)
   );
 }
 
@@ -1357,7 +1465,7 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn, labelsOnly){
 // made longer swipes fail inconsistently. touch-action:none stops the page
 // from trying to scroll during the gesture.
 (function setupSwipeZone(){
-  const zone = document.getElementById('appArea');
+  const zone = document.querySelector('.wrap');
   zone.style.touchAction = 'pan-y';
   let startX = null, startY = null, tracking = false;
 
@@ -1381,6 +1489,7 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn, labelsOnly){
 
 window.addEventListener('resize', renderCurrentView);
 initDeviceMode();
+updateIconsAndManifest(generateDefaultIcon());
 loadData();
 </script>
 </body>
