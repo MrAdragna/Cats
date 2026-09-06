@@ -35,12 +35,14 @@
     --error:#a8412a;
     --band-a:#e6e9e3;
     --band-b:#eef1ee;
+    --week-band-a:#d9ded3;
+    --week-band-b:#f4f6f1;
   }
   *{box-sizing:border-box;}
   html,body{height:100%;}
   body{
     margin:0;
-    background:#c9cdc3;
+    background:var(--paper);
     color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
     line-height:1.45;
@@ -105,10 +107,18 @@
   header .sub{color:var(--ink-soft);font-size:0.85rem;}
 
   /* Period-change animation */
-  @keyframes slideInFromRight{from{opacity:0; transform:translateX(18px);} to{opacity:1; transform:translateX(0);}}
-  @keyframes slideInFromLeft{from{opacity:0; transform:translateX(-18px);} to{opacity:1; transform:translateX(0);}}
-  #periodContent.slide-fwd{animation:slideInFromRight .22s ease-out;}
-  #periodContent.slide-back{animation:slideInFromLeft .22s ease-out;}
+  @keyframes slideInFromRight{
+    0%{opacity:0; transform:translateX(60px) scale(0.97);}
+    60%{opacity:1; transform:translateX(-6px) scale(1.005);}
+    100%{opacity:1; transform:translateX(0) scale(1);}
+  }
+  @keyframes slideInFromLeft{
+    0%{opacity:0; transform:translateX(-60px) scale(0.97);}
+    60%{opacity:1; transform:translateX(6px) scale(1.005);}
+    100%{opacity:1; transform:translateX(0) scale(1);}
+  }
+  #periodContent.slide-fwd{animation:slideInFromRight .38s cubic-bezier(.25,.9,.35,1.15);}
+  #periodContent.slide-back{animation:slideInFromLeft .38s cubic-bezier(.25,.9,.35,1.15);}
 
   .state-msg{padding:60px 16px;text-align:center;color:var(--ink-soft);font-size:0.95rem;}
   .state-msg.error{color:var(--error);}
@@ -132,6 +142,8 @@
 
   .stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
   .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:110px;flex:1;}
+  .bar-track{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:6px;}
+  .bar-fill{height:100%;border-radius:4px;transition:width .3s ease;}
   .stat .num{font-size:1.25rem;font-weight:700;}
   .stat .lbl{font-size:0.72rem;color:var(--ink-soft);}
 
@@ -142,6 +154,19 @@
   .legend .swatch{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px;}
 
   .tooltip{position:fixed;pointer-events:none;background:var(--ink);color:#fff;padding:8px 12px;border-radius:8px;font-size:0.78rem;opacity:0;transition:opacity .08s;z-index:50;white-space:nowrap;line-height:1.6;box-shadow:0 4px 14px rgba(0,0,0,0.25);}
+
+  .pull-refresh{
+    position:fixed; top:0; left:50%;
+    width:44px; height:44px; margin-left:-22px;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--card); border-radius:50%;
+    box-shadow:0 4px 12px rgba(0,0,0,0.18);
+    opacity:0; pointer-events:none; z-index:60;
+    transform:translateY(-60px) scale(0.7) rotate(0deg);
+  }
+  .pull-refresh-icon{font-size:1.3rem; line-height:1;}
+  .pull-refresh.spinning .pull-refresh-icon{animation:pullSpin 0.7s linear infinite;}
+  @keyframes pullSpin{from{transform:rotate(0deg);} to{transform:rotate(360deg);}}
 
   .axis text{fill:var(--ink-soft);font-size:11px;}
   .axis path,.axis line{stroke:var(--line);}
@@ -247,6 +272,7 @@
 </div>
 
 <div class="tooltip" id="tooltip"></div>
+<div id="pullRefresh" class="pull-refresh"><div class="pull-refresh-icon">🐾</div></div>
 
 <script>
 // Replace with your deployed Apps Script Web App URL.
@@ -345,11 +371,11 @@ function generateDateRange(startKey, endKey){
 function stormSeverity(code, precipMM, gustKmh){
   precipMM = precipMM || 0;
   gustKmh = gustKmh || 0;
-  if(code >= 95) return 4;
-  if(precipMM >= 7.6 || gustKmh >= 50) return 3;
-  if(precipMM >= 2.5 || gustKmh >= 35) return 2;
-  if(precipMM > 0 || gustKmh >= 20) return 1;
-  return 0;
+  if(code >= 95) return 4;                              // thunderstorm
+  if(precipMM >= 7.6 || gustKmh >= 70) return 3;         // heavy rain / damaging gusts
+  if(precipMM >= 2.5 || gustKmh >= 55) return 2;         // moderate rain / strong gusts
+  if(precipMM > 0 || gustKmh >= 40) return 1;            // light rain / genuinely noticeable wind
+  return 0;                                              // calm — routine breezy days shouldn't register
 }
 
 let weatherByDate = {};
@@ -815,9 +841,9 @@ function renderStatsGrid(stats){
       const pct = Math.max(0, Math.min(100, (s.value/6)*100));
       const color = peeColor(s.value);
       div.innerHTML =
-        '<div class="lbl">'+s.lbl+'</div>' +
+        '<div class="num" style="color:'+color+';">'+s.value.toFixed(1)+'</div>' +
         '<div class="bar-track"><div class="bar-fill" style="width:'+pct+'%;background:'+color+';"></div></div>' +
-        '<div class="num" style="font-size:0.85rem;margin-top:2px;color:'+color+';">'+s.value.toFixed(1)+'/6</div>';
+        '<div class="lbl" style="margin-top:4px;">'+s.lbl+'</div>';
     } else {
       div.className = 'stat';
       div.setAttribute('style', warnStyleFor(s.warnLevel || 0));
@@ -960,17 +986,19 @@ function renderYearView(anchor){
 
 // ---- Tooltip ----
 
-// Positioned at a fixed spot near the top of the viewport rather than
-// following the finger — a floating tooltip under the touch point is
-// unreadable on a phone since the thumb itself covers it.
-function showTooltip(event, lines){
-  event.stopPropagation();
+// Anchored just above the top of the scrub guide-line, at the same x
+// position — so it moves left/right with your finger instead of sitting in
+// one fixed spot (and specifically doesn't sit under the thumb, since it's
+// pinned above the chart rather than at the touch point itself).
+function showTooltip(clientX, clientY, lines){
   const tooltip = d3.select('#tooltip');
   const html = lines.join('<br>');
+  const estWidth = 200;
+  const left = Math.max(8, Math.min(clientX - estWidth/2, window.innerWidth - estWidth - 8));
   tooltip.style('opacity',1)
-    .style('left', '50%')
-    .style('transform', 'translateX(-50%)')
-    .style('top', 'max(78px, calc(env(safe-area-inset-top) + 68px))')
+    .style('left', left + 'px')
+    .style('transform', 'translateY(calc(-100% - 10px))')
+    .style('top', clientY + 'px')
     .html(html);
 }
 function hideTooltip(){ d3.select('#tooltip').style('opacity',0); }
@@ -991,31 +1019,62 @@ function fmtTime(d){
   return d.toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit', hour12:false});
 }
 
+function getScrollParent(el){
+  let node = el;
+  while(node && node !== document.body && node !== document.documentElement){
+    const style = window.getComputedStyle(node);
+    if(/(auto|scroll)/.test(style.overflowY) && node.scrollHeight > node.clientHeight) return node;
+    node = node.parentElement;
+  }
+  return document.scrollingElement || document.documentElement;
+}
+
 // Attaches scrub-only drag behavior to a chart overlay. Charts never
 // complete a swipe/period-change themselves — that's handled by a separate
 // zone (see setupSwipeZone) so a drag that starts on a chart always just
 // reads data, no matter how far or which direction it moves.
-// touch-action:pan-y lets the browser take over as a normal vertical scroll
-// the instant it detects a mostly-vertical gesture — the platform's own
-// gesture-disambiguation is more reliable than anything we'd hand-roll, and
-// it means the container a chart sits in is naturally easier to scroll than
-// the chart is to scrub, since only a clearly-horizontal drag ever reaches
-// our JS at all.
+// touch-action:none gives us full manual control of the scroll-vs-scrub
+// decision (the browser's own pan-y heuristic handed off to scrolling far
+// too eagerly during an intended scrub). Once a drag clearly commits to
+// being vertical — past a deliberately high, tunable bar — we take over
+// scrolling manually ourselves; short of that bar, everything scrubs.
 // setPointerCapture keeps pointermove/pointerup targeting this exact overlay
-// even if the finger drifts over other elements. onEnd (release/cancel)
-// always hides the tooltip and clears any highlight — nothing lingers after
-// you let go.
+// even if the finger drifts over other elements. onEnd always hides the
+// tooltip and clears any highlight — nothing lingers after you let go.
+const SCROLL_TAKEOVER_DY = 32;   // px of vertical travel before scroll can win
+const SCROLL_TAKEOVER_RATIO = 2.2; // how much more vertical than horizontal it must be
+
 function attachDragGestures(overlaySelection, onMove, onEnd){
+  let mode = null; // null | 'scrub' | 'scroll'
+  let startX = 0, startY = 0, lastY = 0, scrollEl = null;
+
   overlaySelection.style('cursor', 'crosshair');
-  overlaySelection.style('touch-action', 'pan-y');
+  overlaySelection.style('touch-action', 'none');
   overlaySelection.on('pointerdown', function(event){
     event.stopPropagation();
+    mode = null;
+    startX = event.clientX; startY = event.clientY; lastY = event.clientY;
+    scrollEl = getScrollParent(this);
     this.setPointerCapture(event.pointerId);
     const offsetX = event.offsetX ?? d3.pointer(event, this)[0];
     onMove(offsetX, event);
   });
   overlaySelection.on('pointermove', function(event){
-    if(event.buttons === 0 && event.pointerType !== 'touch') return;
+    const dx = event.clientX - startX, dy = event.clientY - startY;
+    if(mode === null){
+      if(Math.abs(dy) > SCROLL_TAKEOVER_DY && Math.abs(dy) > Math.abs(dx) * SCROLL_TAKEOVER_RATIO){
+        mode = 'scroll';
+        hideTooltip();
+        if(onEnd) onEnd();
+      } else if(Math.abs(dx) > 4){
+        mode = 'scrub';
+      }
+    }
+    if(mode === 'scroll'){
+      if(scrollEl) scrollEl.scrollTop -= (event.clientY - lastY);
+      lastY = event.clientY;
+      return;
+    }
     event.stopPropagation();
     const offsetX = event.offsetX ?? d3.pointer(event, this)[0];
     onMove(offsetX, event);
@@ -1024,6 +1083,7 @@ function attachDragGestures(overlaySelection, onMove, onEnd){
     event.stopPropagation();
     hideTooltip();
     if(onEnd) onEnd();
+    mode = null;
   });
   overlaySelection.on('click', function(event){ event.stopPropagation(); });
 }
@@ -1073,6 +1133,13 @@ function drawWeatherArea(g, x, plotWidth, plotHeight, dayStart, weather, date){
     const src = weather.hours[hr === 24 ? 23 : hr];
     pts.push({t: new Date(dayStart.getTime() + hr*3600000), sev: src ? src.severity : 0});
   }
+  const anyWeather = pts.some(p => p.sev > 0);
+  if(!anyWeather){
+    g.append('text')
+      .attr('x', plotWidth/2).attr('y', plotHeight - 14)
+      .attr('text-anchor','middle').attr('fill','var(--ink-soft)').attr('font-size','12px')
+      .text('No weather events today');
+  }
   const ys = d3.scaleLinear().domain([0,4]).range([plotHeight, 0]);
 
   const gradId = 'wxgrad_' + date.replace(/-/g,'');
@@ -1104,16 +1171,29 @@ function drawWeatherArea(g, x, plotWidth, plotHeight, dayStart, weather, date){
 // Feeding times: full-height reference lines overlaid on the same plot —
 // fixed schedule, not a magnitude, so just presence.
 function drawFeedingLines(g, x, plotWidth, plotHeight, dayStart){
-  const marks = FEEDING_TIMES.map(f => {
+  const marks = FEEDING_TIMES.map((f,i) => {
     const t = new Date(dayStart);
     t.setHours(f.hour, f.minute, 0, 0);
-    return {time: t, label: f.label};
+    return {time: t, label: f.label, row: i % 2};
   });
+
   g.selectAll('.feedline').data(marks).enter().append('line')
     .attr('x1', d => x(d.time)).attr('x2', d => x(d.time))
-    .attr('y1', 0).attr('y2', plotHeight)
+    .attr('y1', d => -6 - d.row*15)
+    .attr('y2', plotHeight)
     .attr('stroke', '#c99a3a').attr('stroke-width', 1.5)
     .attr('stroke-dasharray', '4,3').style('opacity', 0.7);
+
+  const tagW = 50, tagH = 15;
+  const tags = g.selectAll('.feedtag').data(marks).enter().append('g')
+    .attr('transform', d => `translate(${x(d.time)},${-13 - d.row*15})`);
+  tags.append('rect')
+    .attr('x', -tagW/2).attr('y', -tagH/2).attr('width', tagW).attr('height', tagH)
+    .attr('rx', 4).attr('fill', '#c99a3a');
+  tags.append('text')
+    .attr('text-anchor','middle').attr('dy','0.32em')
+    .attr('font-size','8px').attr('fill', '#fff').attr('font-weight','700')
+    .text(d => d.label);
 
   return function(t, offsetX){
     let nearest = null, dist = Infinity;
@@ -1136,7 +1216,13 @@ function drawStressEventLines(g, x, plotWidth, plotHeight, dayStart, weather, da
     .attr('stroke', '#7a3b8c').attr('stroke-width', 2)
     .style('opacity', 0.7);
 
-  if(!dayEvents.length) return () => null;
+  if(!dayEvents.length){
+    g.append('text')
+      .attr('x', plotWidth/2).attr('y', plotHeight - 14)
+      .attr('text-anchor','middle').attr('fill','var(--ink-soft)').attr('font-size','12px')
+      .text('No stressful events today');
+    return () => null;
+  }
   return function(t, offsetX){
     let nearest = null, dist = Infinity;
     dayEvents.forEach(ev => {
@@ -1167,7 +1253,7 @@ function drawCoreDayChart(containerId, date, drawExtra){
   const dayStart = new Date(date + 'T00:00:00');
   const dayEnd = new Date(dayStart.getTime() + 24*3600000);
 
-  const margin = {top: 14, right: 40, bottom: 32, left: 10};
+  const margin = {top: 40, right: 40, bottom: 32, left: 10};
   const width = Math.max(area.clientWidth || 320, 260);
   const plotWidth = width - margin.left - margin.right;
   const plotHeight = 260;
@@ -1197,8 +1283,8 @@ function drawCoreDayChart(containerId, date, drawExtra){
   // short twilight transition around sunrise/sunset — not a fade across the
   // whole night. Shown on every chart for shared day/night context.
   if(weather && weather.sunrise && weather.sunset){
-    const NIGHT_OPACITY = 0.4;
-    const TWILIGHT_MIN = 40; // minutes of fade on either side of sunrise/sunset
+    const NIGHT_OPACITY = 0.13;
+    const TWILIGHT_MIN = 70; // minutes of fade on either side of sunrise/sunset
     const nightColor = c => `rgba(20,28,54,${c})`;
     const twilightStart = new Date(weather.sunrise.getTime() - TWILIGHT_MIN*60000);
     const twilightEnd = new Date(weather.sunset.getTime() + TWILIGHT_MIN*60000);
@@ -1341,7 +1427,11 @@ function drawCoreDayChart(containerId, date, drawExtra){
     .attr('fill', 'transparent');
 
   attachDragGestures(overlay,
-    (rawOffsetX, event) => showTooltip(event, updateScrub(rawOffsetX - margin.left)),
+    (rawOffsetX, event) => {
+      const rect = svg.node().getBoundingClientRect();
+      const clampedX = Math.max(0, Math.min(plotWidth, rawOffsetX - margin.left));
+      showTooltip(rect.left + margin.left + clampedX, rect.top + margin.top, updateScrub(rawOffsetX - margin.left));
+    },
     () => guideLine.style('opacity', 0)
   );
 }
@@ -1398,7 +1488,7 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn, labelsOnly){
       g.append('rect')
         .attr('x', x(s.date)).attr('width', x.step())
         .attr('y', 0).attr('height', plotHeight)
-        .attr('fill', weekIdx % 2 === 0 ? 'var(--band-a)' : 'var(--band-b)');
+        .attr('fill', weekIdx % 2 === 0 ? 'var(--week-band-a)' : 'var(--week-band-b)');
     });
   }
 
@@ -1451,7 +1541,11 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn, labelsOnly){
     .attr('fill', 'transparent');
 
   attachDragGestures(overlay,
-    (rawOffsetX, event) => showTooltip(event, updateScrub(rawOffsetX - margin.left)),
+    (rawOffsetX, event) => {
+      const rect = svg.node().getBoundingClientRect();
+      const clampedX = Math.max(0, Math.min(plotWidth, rawOffsetX - margin.left));
+      showTooltip(rect.left + margin.left + clampedX, rect.top + margin.top, updateScrub(rawOffsetX - margin.left));
+    },
     () => guideRect.style('opacity', 0)
   );
 }
@@ -1464,6 +1558,73 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn, labelsOnly){
 // vertical wobble scales with how far you've dragged — a fixed pixel cutoff
 // made longer swipes fail inconsistently. touch-action:none stops the page
 // from trying to scroll during the gesture.
+// Pull-to-refresh: installed home-screen web apps have no browser chrome, so
+// there's no native pull-to-refresh at all — this replaces it. Only arms
+// when the scroll container is already at the very top and the drag is
+// clearly downward; a damped/elastic pull animation gives resistance, and
+// past the threshold it spins while loadData() runs. Vibration is a no-op on
+// iOS (no Vibration API support there) but works as a nice touch on Android.
+(function setupPullToRefresh(){
+  const indicator = document.getElementById('pullRefresh');
+  const THRESHOLD = 46;
+  let scrollEl = null, startY = null, pulling = false, refreshing = false, armed = false;
+
+  function getContainer(){
+    const frame = document.getElementById('deviceFrame');
+    if(frame && /(auto|scroll)/.test(getComputedStyle(frame).overflowY)) return frame;
+    return document.scrollingElement || document.documentElement;
+  }
+
+  function onDown(e){
+    if(refreshing) return;
+    scrollEl = getContainer();
+    if(scrollEl.scrollTop > 0){ startY = null; return; }
+    startY = e.clientY;
+    pulling = true;
+    armed = false;
+  }
+  function onMove(e){
+    if(!pulling || startY === null) return;
+    const dy = e.clientY - startY;
+    if(dy <= 0) return;
+    const damped = Math.min(90, Math.sqrt(dy) * 6);
+    armed = damped > THRESHOLD;
+    indicator.style.transition = '';
+    indicator.style.opacity = Math.min(1, damped/50);
+    indicator.style.transform = `translateY(${damped - 60}px) scale(${0.7 + Math.min(0.3, damped/150)}) rotate(${damped*3}deg)`;
+  }
+  function resetIndicator(){
+    indicator.style.transition = 'transform .25s ease, opacity .25s ease';
+    indicator.style.opacity = '0';
+    indicator.style.transform = 'translateY(-60px) scale(0.7) rotate(0deg)';
+  }
+  function onUp(){
+    if(!pulling) return;
+    pulling = false;
+    if(armed){
+      refreshing = true;
+      indicator.classList.add('spinning');
+      indicator.style.transition = 'transform .15s ease';
+      indicator.style.opacity = '1';
+      indicator.style.transform = 'translateY(10px) scale(1) rotate(0deg)';
+      if(navigator.vibrate) navigator.vibrate(15);
+      loadData();
+      setTimeout(() => {
+        indicator.classList.remove('spinning');
+        refreshing = false;
+        resetIndicator();
+      }, 900);
+    } else {
+      resetIndicator();
+    }
+  }
+
+  document.addEventListener('pointerdown', onDown);
+  document.addEventListener('pointermove', onMove);
+  document.addEventListener('pointerup', onUp);
+  document.addEventListener('pointercancel', onUp);
+})();
+
 (function setupSwipeZone(){
   const zone = document.querySelector('.wrap');
   zone.style.touchAction = 'pan-y';
