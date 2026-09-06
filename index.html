@@ -126,14 +126,15 @@
   .spinner{width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;margin:0 auto 14px;animation:spin 0.8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
 
-  .view-tabs{display:flex;gap:6px;margin-bottom:12px;}
-  .view-tabs button{flex:1;padding:8px 0;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink-soft);font-size:0.82rem;font-weight:600;cursor:pointer;}
+  .view-tabs{display:flex;gap:4px;margin-bottom:12px;}
+  .view-tabs button{flex:1;padding:8px 0;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink-soft);font-size:0.72rem;font-weight:600;cursor:pointer;}
   .view-tabs button.active{background:var(--ink);color:#fff;border-color:var(--ink);}
 
   .day-nav{display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
   .day-nav button{width:32px;height:32px;border-radius:7px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-size:1rem;color:var(--ink);flex-shrink:0;}
   .day-nav button:hover{border-color:var(--accent);color:var(--accent);}
   .day-nav select, .day-nav .period-label{padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:var(--card);font-size:0.85rem;color:var(--ink);}
+  .day-nav select{flex:1; min-width:0;}
   .period-label{flex:1;text-align:center;font-weight:600;}
   .today-btn{width:auto !important;padding:0 12px;margin-left:auto;font-size:0.78rem;background:var(--card);color:var(--accent);border:1px solid var(--accent) !important;font-weight:600;}
   .today-btn.current{background:var(--accent);color:#fff;}
@@ -150,23 +151,32 @@
 
   .chart-card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 10px 6px;margin-bottom:12px;}
   .chart-card h3{margin:0 0 8px;font-size:1rem;color:var(--ink);font-weight:800;text-align:center;letter-spacing:-0.01em;}
+  .list-table{width:100%;border-collapse:collapse;font-size:0.82rem;}
+  .list-table th{text-align:left;padding:6px 8px;color:var(--ink-soft);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.03em;border-bottom:2px solid var(--ink);}
+  .list-table td{padding:7px 8px;border-bottom:1px solid var(--line);}
+  .list-table tr:nth-child(even){background:var(--band-a);}
 
   .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;padding:0 6px;font-size:0.76rem;color:var(--ink-soft);}
   .legend .swatch{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px;}
 
   .tooltip{position:fixed;pointer-events:none;background:var(--ink);color:#fff;padding:8px 12px;border-radius:8px;font-size:0.78rem;opacity:0;transition:opacity .08s;z-index:50;white-space:nowrap;line-height:1.6;box-shadow:0 4px 14px rgba(0,0,0,0.25);}
 
-  .pull-refresh{
-    position:fixed; top:0; left:50%;
-    width:44px; height:44px; margin-left:-22px;
+  .pull-refresh-bar{
+    height:0; overflow:hidden;
     display:flex; align-items:center; justify-content:center;
-    background:var(--card); border-radius:50%;
-    box-shadow:0 4px 12px rgba(0,0,0,0.18);
-    opacity:0; pointer-events:none; z-index:60;
-    transform:translateY(-60px) scale(0.7) rotate(0deg);
+    transition:height .28s cubic-bezier(0.22,0.61,0.36,1);
   }
-  .pull-refresh-icon{font-size:1.3rem; line-height:1;}
-  .pull-refresh.spinning .pull-refresh-icon{animation:pullSpin 0.7s linear infinite;}
+  .pull-refresh-icon{
+    font-size:1.4rem; line-height:1; opacity:0.35;
+    transform:scale(0.6) rotate(0deg);
+    transition:opacity .1s, transform .1s;
+  }
+  .pull-refresh-icon.armed{opacity:1;}
+  .pull-refresh-bar.spinning{transition:none;}
+  .pull-refresh-bar.spinning .pull-refresh-icon{
+    animation:pullSpin 0.7s linear infinite;
+    opacity:1; transform:scale(1);
+  }
   @keyframes pullSpin{from{transform:rotate(0deg);} to{transform:rotate(360deg);}}
 
   .axis text{fill:var(--ink-soft);font-size:11px;}
@@ -198,6 +208,7 @@
             <button id="tabWeek" onclick="setView('week')">Week</button>
             <button id="tabMonth" onclick="setView('month')">Month</button>
             <button id="tabYear" onclick="setView('year')">Year</button>
+            <button id="tabList" onclick="setView('list')">List</button>
             <button id="addEventBtn" onclick="toggleAddEventForm()" style="flex:0 0 auto;width:36px;">+</button>
           </div>
 
@@ -263,6 +274,7 @@
           </div>
         </div>
 
+        <div id="pullRefreshBar" class="pull-refresh-bar"><div class="pull-refresh-icon" id="pullRefreshIcon">🐾</div></div>
         <div id="periodContent">
           <div class="stats" id="statsRow"></div>
           <div id="viewContainer"></div>
@@ -273,7 +285,6 @@
 </div>
 
 <div class="tooltip" id="tooltip"></div>
-<div id="pullRefresh" class="pull-refresh"><div class="pull-refresh-icon">🐾</div></div>
 
 <script>
 // Replace with your deployed Apps Script Web App URL.
@@ -685,13 +696,15 @@ let navDirection = 1;
 
 function setView(view){
   currentView = view;
-  ['tabDay','tabWeek','tabMonth','tabYear'].forEach(id => {
+  ['tabDay','tabWeek','tabMonth','tabYear','tabList'].forEach(id => {
     document.getElementById(id).classList.toggle('active', id === 'tab' + view.charAt(0).toUpperCase() + view.slice(1));
   });
   document.getElementById('dateSelect').style.display = view === 'day' ? '' : 'none';
   document.getElementById('periodLabel').style.display = view === 'day' ? 'none' : '';
+  document.getElementById('dayNav').style.display = view === 'list' ? 'none' : 'flex';
   const hints = {day:'day', week:'week', month:'month', year:'year'};
-  document.getElementById('swipeHint').textContent = 'Drag chart to inspect · swipe further to change ' + hints[view];
+  document.getElementById('swipeHint').style.display = view === 'list' ? 'none' : '';
+  document.getElementById('swipeHint').textContent = view === 'list' ? '' : 'Drag chart to inspect · swipe further to change ' + hints[view];
   renderCurrentView();
 }
 
@@ -759,12 +772,51 @@ function renderCurrentView(){
       monthAnchor.toLocaleDateString(undefined, {month:'long', year:'numeric'});
     renderMonthStats(monthAnchor);
     renderMultiDayCharts(days);
-  } else {
+  } else if(currentView === 'year'){
     document.getElementById('periodLabel').textContent = String(monthAnchor.getFullYear());
     renderYearStats(monthAnchor);
     renderYearView(monthAnchor);
+  } else {
+    document.getElementById('statsRow').innerHTML = '';
+    renderListView();
   }
   playPeriodAnimation();
+}
+
+// Plain scrollable table of every straining/pee entry, most recent first —
+// meant for quickly checking specifics or sharing with a vet, not for
+// visual pattern-spotting like the charts.
+function renderListView(){
+  const rows = [];
+  straining.forEach(s => rows.push({
+    time: s.start, type: '🚽 Straining',
+    detail: Math.round((s.end - s.start)/60000) + ' min',
+    note: s.note || ''
+  }));
+  pee.forEach(p => rows.push({
+    time: p.time, type: '🐾 Pee',
+    detail: 'Size ' + p.rating + '/6',
+    note: p.note || ''
+  }));
+  rows.sort((a,b) => b.time - a.time);
+
+  const container = document.getElementById('viewContainer');
+  if(!rows.length){
+    container.innerHTML = '<div class="chart-card"><div class="empty-msg">No entries logged yet.</div></div>';
+    return;
+  }
+
+  let html = '<div class="chart-card"><table class="list-table"><thead><tr>' +
+    '<th>Date</th><th>Time</th><th>Type</th><th>Detail</th><th>Note</th></tr></thead><tbody>';
+  rows.forEach(r => {
+    html += '<tr><td>' + r.time.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}) + '</td>' +
+      '<td>' + fmtTime(r.time) + '</td>' +
+      '<td>' + r.type + '</td>' +
+      '<td>' + r.detail + '</td>' +
+      '<td>' + escapeHtml(r.note) + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  container.innerHTML = html;
 }
 
 function weekDates(anchor){
@@ -1046,14 +1098,14 @@ const SCROLL_TAKEOVER_RATIO = 2.2; // how much more vertical than horizontal it 
 
 function attachDragGestures(overlaySelection, onMove, onEnd){
   let mode = null; // null | 'scroll' (locks in once triggered; otherwise every move defaults to scrub)
-  let startX = 0, startY = 0, lastY = 0, scrollEl = null;
+  let startX = 0, startY = 0, scrollAnchorY = 0, scrollAnchorTop = 0, scrollEl = null;
 
   overlaySelection.style('cursor', 'crosshair');
   overlaySelection.style('touch-action', 'none');
   overlaySelection.on('pointerdown', function(event){
     event.stopPropagation();
     mode = null;
-    startX = event.clientX; startY = event.clientY; lastY = event.clientY;
+    startX = event.clientX; startY = event.clientY;
     scrollEl = getScrollParent(this);
     this.setPointerCapture(event.pointerId);
     const offsetX = event.offsetX ?? d3.pointer(event, this)[0];
@@ -1064,13 +1116,18 @@ function attachDragGestures(overlaySelection, onMove, onEnd){
     if(mode !== 'scroll' &&
        Math.abs(dy) > SCROLL_TAKEOVER_DY && Math.abs(dy) > Math.abs(dx) * SCROLL_TAKEOVER_RATIO){
       mode = 'scroll';
-      lastY = event.clientY; // reset reference so the takeover doesn't jump
+      // Anchor both the pointer position and the scroll position at the exact
+      // moment of takeover, so scrollTop is always computed as an absolute
+      // function of total displacement since then — not accumulated frame by
+      // frame, which was prone to drifting/oscillating.
+      scrollAnchorY = event.clientY;
+      scrollAnchorTop = scrollEl ? scrollEl.scrollTop : 0;
       hideTooltip();
       if(onEnd) onEnd();
     }
     if(mode === 'scroll'){
-      if(scrollEl) scrollEl.scrollTop -= (event.clientY - lastY);
-      lastY = event.clientY;
+      event.stopPropagation();
+      if(scrollEl) scrollEl.scrollTop = scrollAnchorTop - (event.clientY - scrollAnchorY);
       return;
     }
     // Default: scrub. No separate low-bar "commit" check — that was locking
@@ -1171,30 +1228,25 @@ function drawWeatherArea(g, x, plotWidth, plotHeight, dayStart, weather, date){
 // Feeding times: full-height reference lines overlaid on the same plot —
 // fixed schedule, not a magnitude, so just presence.
 function drawFeedingLines(g, x, plotWidth, plotHeight, dayStart){
-  const marks = FEEDING_TIMES.map((f,i) => {
+  const marks = FEEDING_TIMES.map(f => {
     const t = new Date(dayStart);
     t.setHours(f.hour, f.minute, 0, 0);
-    return {time: t, label: f.label, row: i % 2};
+    return {time: t, label: f.label};
   });
 
   g.selectAll('.feedline').data(marks).enter().append('line')
     .attr('x1', d => x(d.time)).attr('x2', d => x(d.time))
-    .attr('y1', d => -6 - d.row*15)
-    .attr('y2', plotHeight)
+    .attr('y1', -8).attr('y2', plotHeight)
     .attr('stroke', '#c99a3a').attr('stroke-width', 1.5)
     .attr('stroke-dasharray', '4,3').style('opacity', 0.7);
 
-  const tagW = 50, tagH = 15;
-  const tagX = d => Math.max(tagW/2, Math.min(plotWidth - tagW/2, x(d.time)));
-  const tags = g.selectAll('.feedtag').data(marks).enter().append('g')
-    .attr('transform', d => `translate(${tagX(d)},${-13 - d.row*15})`);
-  tags.append('rect')
-    .attr('x', -tagW/2).attr('y', -tagH/2).attr('width', tagW).attr('height', tagH)
-    .attr('rx', 4).attr('fill', '#c99a3a');
-  tags.append('text')
-    .attr('text-anchor','middle').attr('dy','0.32em')
-    .attr('font-size','8px').attr('fill', '#fff').attr('font-weight','700')
-    .text(d => d.label);
+  // Plain flag shape, no on-chart text — tap/scrub reveals which meal it is.
+  const flagW = 9, flagH = 7;
+  const flagX = d => Math.max(0, Math.min(plotWidth, x(d.time)));
+  g.selectAll('.feedflag').data(marks).enter().append('path')
+    .attr('transform', d => `translate(${flagX(d)},-8)`)
+    .attr('d', `M0,0 L${flagW},${flagH/2} L0,${flagH} Z`)
+    .attr('fill', '#c99a3a');
 
   return function(t, offsetX){
     let nearest = null, dist = Infinity;
@@ -1254,7 +1306,7 @@ function drawCoreDayChart(containerId, date, drawExtra){
   const dayStart = new Date(date + 'T00:00:00');
   const dayEnd = new Date(dayStart.getTime() + 24*3600000);
 
-  const margin = {top: 40, right: 40, bottom: 32, left: 10};
+  const margin = {top: 22, right: 40, bottom: 32, left: 10};
   const width = Math.max(area.clientWidth || 320, 260);
   const plotWidth = width - margin.left - margin.right;
   const plotHeight = 260;
@@ -1286,9 +1338,9 @@ function drawCoreDayChart(containerId, date, drawExtra){
   // midnight) a touch darker/bluer than the middle of the night span, for a
   // bit of visual depth without raising the overall opacity.
   if(weather && weather.sunrise && weather.sunset){
-    const NIGHT_OPACITY = 0.13;
-    const NIGHT_EDGE_OPACITY = 0.2;
-    const TWILIGHT_MIN = 70; // minutes of fade on either side of sunrise/sunset
+    const NIGHT_OPACITY = 0.09;
+    const NIGHT_EDGE_OPACITY = 0.25;
+    const TWILIGHT_MIN = 100; // minutes of fade on either side of sunrise/sunset
     const nightColor = c => `rgba(16,22,46,${c})`;
     const twilightStart = new Date(weather.sunrise.getTime() - TWILIGHT_MIN*60000);
     const twilightEnd = new Date(weather.sunset.getTime() + TWILIGHT_MIN*60000);
@@ -1581,14 +1633,17 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn, labelsOnly){
 // made longer swipes fail inconsistently. touch-action:none stops the page
 // from trying to scroll during the gesture.
 // Pull-to-refresh: installed home-screen web apps have no browser chrome, so
-// there's no native pull-to-refresh at all — this replaces it. Only arms
-// when the scroll container is already at the very top and the drag is
-// clearly downward; a damped/elastic pull animation gives resistance, and
-// past the threshold it spins while loadData() runs. Vibration is a no-op on
-// iOS (no Vibration API support there) but works as a nice touch on Android.
+// there's no native pull-to-refresh at all — this replaces it. The bar above
+// the content grows as you pull (pushing content down, same as a native
+// app), with the icon dimmed/small until "charged" past the threshold, at
+// which point it goes full opacity/size. Release while charged to refresh
+// (it spins while loadData() runs); release early and it un-winds/cancels.
+// Vibration is a no-op on iOS (no Vibration API there) but works on Android.
 (function setupPullToRefresh(){
-  const indicator = document.getElementById('pullRefresh');
-  const THRESHOLD = 46;
+  const bar = document.getElementById('pullRefreshBar');
+  const icon = document.getElementById('pullRefreshIcon');
+  const MAX_PULL = 64;
+  const THRESHOLD = 44;
   let scrollEl = null, startY = null, pulling = false, refreshing = false, armed = false;
 
   function getContainer(){
@@ -1604,40 +1659,45 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn, labelsOnly){
     startY = e.clientY;
     pulling = true;
     armed = false;
+    bar.style.transition = 'none';
   }
   function onMove(e){
     if(!pulling || startY === null) return;
     const dy = e.clientY - startY;
-    if(dy <= 0) return;
-    const damped = Math.min(90, Math.sqrt(dy) * 6);
-    armed = damped > THRESHOLD;
-    indicator.style.transition = '';
-    indicator.style.opacity = Math.min(1, damped/50);
-    indicator.style.transform = `translateY(${damped - 60}px) scale(${0.7 + Math.min(0.3, damped/150)}) rotate(${damped*3}deg)`;
-  }
-  function resetIndicator(){
-    indicator.style.transition = 'transform .25s ease, opacity .25s ease';
-    indicator.style.opacity = '0';
-    indicator.style.transform = 'translateY(-60px) scale(0.7) rotate(0deg)';
+    if(dy <= 0){
+      bar.style.height = '0px';
+      icon.classList.remove('armed');
+      armed = false;
+      return;
+    }
+    const pull = Math.min(MAX_PULL, dy * 0.4); // damped ~40% follow, with resistance
+    bar.style.height = pull + 'px';
+    armed = pull >= THRESHOLD;
+    icon.classList.toggle('armed', armed);
+    icon.style.transform = `scale(${0.6 + 0.4*(pull/MAX_PULL)}) rotate(${pull*4}deg)`;
   }
   function onUp(){
     if(!pulling) return;
     pulling = false;
+    bar.style.transition = 'height .28s cubic-bezier(0.22,0.61,0.36,1)';
     if(armed){
       refreshing = true;
-      indicator.classList.add('spinning');
-      indicator.style.transition = 'transform .15s ease';
-      indicator.style.opacity = '1';
-      indicator.style.transform = 'translateY(10px) scale(1) rotate(0deg)';
+      bar.classList.add('spinning');
+      bar.style.height = '50px';
+      icon.classList.add('armed');
+      icon.style.transform = '';
       if(navigator.vibrate) navigator.vibrate(15);
       loadData();
       setTimeout(() => {
-        indicator.classList.remove('spinning');
+        bar.classList.remove('spinning');
+        bar.style.transition = 'height .28s cubic-bezier(0.22,0.61,0.36,1)';
+        bar.style.height = '0px';
+        icon.classList.remove('armed');
         refreshing = false;
-        resetIndicator();
       }, 900);
     } else {
-      resetIndicator();
+      bar.style.height = '0px';
+      icon.classList.remove('armed');
     }
   }
 
@@ -1649,7 +1709,9 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn, labelsOnly){
 
 (function setupSwipeZone(){
   const zone = document.querySelector('.wrap');
-  zone.style.touchAction = 'pan-y';
+  // No touch-action override here — this ancestor conflicting with the chart
+  // overlay's touch-action:none (a descendant) was likely the cause of the
+  // erratic scroll jumping; this zone's own logic doesn't need one.
   let startX = null, startY = null, tracking = false;
 
   function onDown(e){
