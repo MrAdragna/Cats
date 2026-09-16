@@ -126,6 +126,9 @@
   .spinner{width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;margin:0 auto 14px;animation:spin 0.8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
 
+  .cat-tabs{display:flex;gap:8px;margin-bottom:14px;}
+  .cat-tabs button{flex:1;padding:11px 0;border-radius:10px;border:2px solid var(--line);background:var(--card);color:var(--ink-soft);font-size:0.92rem;font-weight:700;cursor:pointer;}
+  .cat-tabs button.active{background:var(--ink);border-color:var(--ink);color:#fff;}
   .view-tabs{display:flex;gap:4px;margin-bottom:12px;}
   .view-tabs button{flex:1;padding:8px 0;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink-soft);font-size:0.72rem;font-weight:600;cursor:pointer;}
   .view-tabs button.active{background:var(--ink);color:#fff;border-color:var(--ink);}
@@ -150,6 +153,13 @@
 
   .chart-card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 10px 6px;margin-bottom:12px;}
   .chart-card h3{margin:0 0 8px;font-size:1rem;color:var(--ink);font-weight:800;text-align:center;letter-spacing:-0.01em;}
+  .overlay-menu-btn{padding:6px 10px;border-radius:7px;border:1px solid var(--line);background:var(--card);color:var(--ink-soft);font-size:0.76rem;font-weight:600;cursor:pointer;}
+  .overlay-menu{position:absolute;right:0;top:32px;background:var(--card);border:1px solid var(--line);border-radius:9px;box-shadow:0 6px 18px rgba(0,0,0,0.2);z-index:20;overflow:hidden;min-width:150px;}
+  .overlay-menu button{display:block;width:100%;text-align:left;padding:9px 12px;border:none;background:none;font-size:0.82rem;color:var(--ink);cursor:pointer;}
+  .overlay-menu button.active{background:var(--accent);color:#fff;font-weight:600;}
+  .overlay-menu button:hover:not(.active){background:var(--paper);}
+  .chart-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border-radius:8px;}
+  .scroll-hint{text-align:center;font-size:0.7rem;color:var(--ink-soft);opacity:0.6;margin-bottom:4px;}
   .list-table{width:100%;border-collapse:collapse;font-size:0.82rem;}
   .list-table th{text-align:left;padding:6px 8px;color:var(--ink-soft);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.03em;border-bottom:2px solid var(--ink);}
   .list-table td{padding:7px 8px;border-bottom:1px solid var(--line);}
@@ -183,6 +193,21 @@
   }
   .fab-add:active{transform:scale(0.93);}
 
+  .modal-backdrop{
+    position:fixed; inset:0; z-index:70;
+    background:rgba(20,24,30,0.5);
+    display:flex; align-items:flex-end; justify-content:center;
+  }
+  .modal-card{
+    background:var(--card);
+    width:100%; max-width:480px;
+    border-radius:18px 18px 0 0;
+    padding:10px 18px max(18px, env(safe-area-inset-bottom)) 18px;
+    max-height:88vh; overflow-y:auto;
+    box-shadow:0 -8px 30px rgba(0,0,0,0.3);
+  }
+  .modal-handle{width:36px;height:4px;background:var(--line);border-radius:2px;margin:4px auto 12px;}
+
   .axis text{fill:var(--ink-soft);font-size:11px;}
   .axis path,.axis line{stroke:var(--line);}
   .gridline{stroke:var(--line);stroke-dasharray:2,3;}
@@ -205,6 +230,8 @@
             <h1>Puddle's Pee</h1>
           </div>
         </header>
+
+        <div id="catTabs" class="cat-tabs" style="display:none;"></div>
 
         <div id="stickyNav" style="display:none;">
           <div class="view-tabs">
@@ -233,46 +260,63 @@
       </div>
 
       <div id="appArea" style="display:none;">
-        <div id="addEventForm" style="display:none;" class="chart-card">
-          <div style="display:flex;flex-direction:column;gap:10px;">
-            <div style="display:flex;gap:6px;">
-              <button id="typePee" class="entry-type-btn" onclick="setEntryType('pee')" style="flex:1;">💧 Pee</button>
-              <button id="typeStraining" class="entry-type-btn" onclick="setEntryType('straining')" style="flex:1;">🚽 Straining</button>
-              <button id="typeStress" class="entry-type-btn" onclick="setEntryType('stress')" style="flex:1;">⚡ Stressor</button>
-            </div>
+        <div id="addEventBackdrop" class="modal-backdrop" style="display:none;" onclick="if(event.target===this) toggleAddEventForm();">
+          <div id="addEventForm" class="modal-card">
+            <div class="modal-handle"></div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <button id="typePee" class="entry-type-btn" onclick="setEntryType('pee')" style="flex:1;min-width:70px;">💧 Pee</button>
+                <button id="typeStraining" class="entry-type-btn" onclick="setEntryType('straining')" style="flex:1;min-width:70px;">🚽 Strain</button>
+                <button id="typePoop" class="entry-type-btn" onclick="setEntryType('poop')" style="flex:1;min-width:70px;">💩 Poop</button>
+                <button id="typeStress" class="entry-type-btn" onclick="setEntryType('stress')" style="flex:1;min-width:70px;">⚡ Stress</button>
+              </div>
 
-            <label style="font-size:0.78rem;color:var(--ink-soft);">When?
-              <input id="eventTime" type="datetime-local" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:4px;">
-            </label>
+              <div id="catSelectWrap" style="display:none;">
+                <label style="font-size:0.78rem;color:var(--ink-soft);">Cat
+                  <select id="entryCat" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:4px;font-size:16px;"></select>
+                </label>
+              </div>
 
-            <div id="fieldPeeRating" style="display:none;">
-              <label style="font-size:0.78rem;color:var(--ink-soft);">Size (1–6)</label>
-              <input id="peeRating" type="range" min="1" max="6" value="3" style="width:100%;">
-              <div style="text-align:center;font-weight:700;" id="peeRatingVal">3</div>
-            </div>
-
-            <div id="fieldDuration" style="display:none;">
-              <label style="font-size:0.78rem;color:var(--ink-soft);">Duration (minutes)
-                <input id="strainDuration" type="number" min="1" placeholder="e.g. 10" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:4px;">
+              <label id="whenLabel" style="font-size:0.78rem;color:var(--ink-soft);">When?
+                <input id="eventTime" type="datetime-local" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:4px;font-size:16px;">
               </label>
-            </div>
 
-            <div id="fieldStressRating" style="display:none;">
-              <label style="font-size:0.78rem;color:var(--ink-soft);">Stress/noise level (1–6)</label>
-              <input id="stressRating" type="range" min="1" max="6" value="3" style="width:100%;">
-              <div style="text-align:center;font-weight:700;" id="stressRatingVal">3</div>
-            </div>
+              <div id="fieldEndTime" style="display:none;">
+                <label style="font-size:0.78rem;color:var(--ink-soft);">End time (duration is calculated for you)
+                  <input id="strainEndTime" type="datetime-local" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:4px;font-size:16px;">
+                </label>
+                <div id="strainDurationPreview" style="font-size:0.78rem;color:var(--ink-soft);margin-top:4px;"></div>
+              </div>
 
-            <label style="font-size:0.78rem;color:var(--ink-soft);" id="labelNoteWrap">
-              <span id="noteLabelText">Note (optional)</span>
-              <input id="eventLabel" type="text" placeholder="Garbage truck, parade, fireworks…" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:4px;">
-            </label>
+              <div id="fieldPeeRating" style="display:none;">
+                <label style="font-size:0.78rem;color:var(--ink-soft);">Size (1–6)</label>
+                <input id="peeRating" type="range" min="1" max="6" value="3" style="width:100%;">
+                <div style="text-align:center;font-weight:700;" id="peeRatingVal">3</div>
+              </div>
 
-            <div style="display:flex;gap:8px;">
-              <button onclick="submitStressEvent()" style="flex:1;padding:10px;border-radius:7px;border:none;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;">Save</button>
-              <button onclick="toggleAddEventForm()" style="flex:1;padding:10px;border-radius:7px;border:1px solid var(--line);background:var(--card);cursor:pointer;">Cancel</button>
+              <div id="fieldPoopRating" style="display:none;">
+                <label style="font-size:0.78rem;color:var(--ink-soft);">Consistency (1 = hard, 6 = very loose)</label>
+                <input id="poopRating" type="range" min="1" max="6" value="3" style="width:100%;">
+                <div style="text-align:center;font-weight:700;" id="poopRatingVal">3</div>
+              </div>
+
+              <div id="fieldStressRating" style="display:none;">
+                <label style="font-size:0.78rem;color:var(--ink-soft);">Stress/noise level (1–6)</label>
+                <input id="stressRating" type="range" min="1" max="6" value="3" style="width:100%;">
+                <div style="text-align:center;font-weight:700;" id="stressRatingVal">3</div>
+              </div>
+
+              <label style="font-size:0.78rem;color:var(--ink-soft);" id="labelNoteWrap">
+                <span id="noteLabelText">Note (optional)</span>
+                <input id="eventLabel" type="text" placeholder="Garbage truck, parade, fireworks…" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:4px;font-size:16px;">
+              </label>
+
+              <div style="display:flex;gap:8px;">
+                <button onclick="submitStressEvent()" style="flex:1;padding:10px;border-radius:7px;border:none;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;">Save</button>
+                <button onclick="toggleAddEventForm()" style="flex:1;padding:10px;border-radius:7px;border:1px solid var(--line);background:var(--card);cursor:pointer;">Cancel</button>
+              </div>
+              <div id="eventFormStatus" style="font-size:0.76rem;color:var(--ink-soft);"></div>
             </div>
-            <div id="eventFormStatus" style="font-size:0.76rem;color:var(--ink-soft);"></div>
           </div>
         </div>
 
@@ -316,7 +360,29 @@ const MAX_STRAINING_MIN = 10;     // straining episode length before flagging
 
 let straining = [];
 let pee = [];
+let poop = [];
 let stressEvents = [];
+let allStraining = [], allPee = [], allPoop = [], allStressEvents = [];
+
+// Two cats get fully separate views of the data, like switching tabs for
+// different sections of an app — rename these to your actual cats' names.
+// Entries with no Cat value (written before this feature existed) count as
+// belonging to the first cat, for backward compatibility.
+const CATS = ['Puddle', 'Cat 2'];
+let currentCat = CATS[0];
+function belongsToCurrentCat(entry){
+  return (entry.cat || CATS[0]) === currentCat;
+}
+// Re-derives the working arrays every render function already reads, so
+// switching cats doesn't require touching any rendering code.
+function applyCatFilter(){
+  straining = allStraining.filter(belongsToCurrentCat);
+  pee = allPee.filter(belongsToCurrentCat);
+  poop = allPoop.filter(belongsToCurrentCat);
+  stressEvents = allStressEvents.filter(belongsToCurrentCat);
+}
+
+let dayOverlay = 'none'; // 'none' | 'weather' | 'feeding' | 'stress' — the Day chart's single optional overlay
 let dateList = [];        // every calendar day from first entry through today
 let currentDateIdx = 0;
 let currentView = 'day';  // 'day' | 'week' | 'month'
@@ -357,19 +423,40 @@ function showState(kind, message){
   const app = document.getElementById('appArea');
   const nav = document.getElementById('stickyNav');
   const fab = document.getElementById('fabAdd');
+  const catTabs = document.getElementById('catTabs');
   if(kind === 'app'){
     area.style.display = 'none';
     app.style.display = 'block';
     nav.style.display = 'block';
     fab.style.display = 'flex';
+    if(CATS.length > 1){
+      catTabs.style.display = 'flex';
+      renderCatTabs();
+    }
     return;
   }
   app.style.display = 'none';
   nav.style.display = 'none';
   fab.style.display = 'none';
+  catTabs.style.display = 'none';
   area.style.display = 'block';
   const spinner = kind === 'loading' ? '<div class="spinner"></div>' : '';
   area.innerHTML = '<div class="state-msg' + (kind==='error' ? ' error' : '') + '">' + spinner + message + '</div>';
+}
+
+function renderCatTabs(){
+  const el = document.getElementById('catTabs');
+  el.innerHTML = CATS.map(c =>
+    `<button class="${c === currentCat ? 'active' : ''}" onclick="switchCat('${c.replace(/'/g,"\\'")}')">${escapeHtml(c)}</button>`
+  ).join('');
+}
+
+function switchCat(cat){
+  if(cat === currentCat) return;
+  currentCat = cat;
+  applyCatFilter();
+  renderCatTabs();
+  renderCurrentView();
 }
 
 function generateDateRange(startKey, endKey){
@@ -487,40 +574,67 @@ let currentEntryType = 'pee';
 
 function setEntryType(type){
   currentEntryType = type;
-  ['typePee','typeStraining','typeStress'].forEach(id => {
+  ['typePee','typeStraining','typePoop','typeStress'].forEach(id => {
     document.getElementById(id).classList.toggle('active',
       id === 'type' + type.charAt(0).toUpperCase() + type.slice(1));
   });
   document.getElementById('fieldPeeRating').style.display = type === 'pee' ? 'block' : 'none';
-  document.getElementById('fieldDuration').style.display = type === 'straining' ? 'block' : 'none';
+  document.getElementById('fieldEndTime').style.display = type === 'straining' ? 'block' : 'none';
+  document.getElementById('fieldPoopRating').style.display = type === 'poop' ? 'block' : 'none';
   document.getElementById('fieldStressRating').style.display = type === 'stress' ? 'block' : 'none';
+  document.getElementById('whenLabel').firstChild.textContent = type === 'straining' ? 'Start time?' : 'When?';
   document.getElementById('noteLabelText').textContent = type === 'stress' ? 'What happened?' : 'Note (optional)';
   document.getElementById('eventLabel').placeholder = type === 'stress'
     ? 'Garbage truck, parade, fireworks…' : 'Optional note';
+  updateDurationPreview();
+}
+
+function updateDurationPreview(){
+  const preview = document.getElementById('strainDurationPreview');
+  const startStr = document.getElementById('eventTime').value;
+  const endStr = document.getElementById('strainEndTime').value;
+  if(!startStr || !endStr){ preview.textContent = ''; return; }
+  const mins = Math.round((new Date(endStr) - new Date(startStr)) / 60000);
+  preview.textContent = mins > 0 ? 'Duration: ' + mins + ' min' : 'End time must be after start time';
 }
 
 function toggleAddEventForm(){
-  const form = document.getElementById('addEventForm');
-  const showing = form.style.display !== 'none';
-  form.style.display = showing ? 'none' : 'block';
+  const backdrop = document.getElementById('addEventBackdrop');
+  const showing = backdrop.style.display !== 'none';
+  backdrop.style.display = showing ? 'none' : 'flex';
   if(!showing){
     document.getElementById('eventFormStatus').textContent = '';
     document.getElementById('eventLabel').value = '';
-    document.getElementById('strainDuration').value = '';
     document.getElementById('peeRating').value = 3;
     document.getElementById('peeRatingVal').textContent = '3';
+    document.getElementById('poopRating').value = 3;
+    document.getElementById('poopRatingVal').textContent = '3';
     document.getElementById('stressRating').value = 3;
     document.getElementById('stressRatingVal').textContent = '3';
+
+    const catWrap = document.getElementById('catSelectWrap');
+    if(CATS.length > 1){
+      catWrap.style.display = 'block';
+      const sel = document.getElementById('entryCat');
+      sel.innerHTML = CATS.map(c => '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>').join('');
+      sel.value = currentCat;
+    } else {
+      catWrap.style.display = 'none';
+    }
+
     setEntryType('pee');
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     document.getElementById('eventTime').value = now.toISOString().slice(0,16);
+    document.getElementById('strainEndTime').value = now.toISOString().slice(0,16);
   }
 }
 
 document.addEventListener('input', function(e){
   if(e.target.id === 'peeRating') document.getElementById('peeRatingVal').textContent = e.target.value;
+  if(e.target.id === 'poopRating') document.getElementById('poopRatingVal').textContent = e.target.value;
   if(e.target.id === 'stressRating') document.getElementById('stressRatingVal').textContent = e.target.value;
+  if(e.target.id === 'eventTime' || e.target.id === 'strainEndTime') updateDurationPreview();
 });
 
 function submitStressEvent(){
@@ -532,15 +646,21 @@ function submitStressEvent(){
     return;
   }
   const isoTime = new Date(timeStr).toISOString();
+  const cat = CATS.length > 1 ? document.getElementById('entryCat').value : CATS[0];
 
-  const params = { action: 'addEntry', entryType: currentEntryType, timestamp: isoTime };
+  const params = { action: 'addEntry', entryType: currentEntryType, timestamp: isoTime, cat: cat };
   if(currentEntryType === 'pee'){
     params.rating = document.getElementById('peeRating').value;
     params.note = note;
+  } else if(currentEntryType === 'poop'){
+    params.rating = document.getElementById('poopRating').value;
+    params.note = note;
   } else if(currentEntryType === 'straining'){
-    const duration = document.getElementById('strainDuration').value;
-    if(!duration || Number(duration) <= 0){
-      status.textContent = 'Enter a duration in minutes.';
+    const endStr = document.getElementById('strainEndTime').value;
+    if(!endStr){ status.textContent = 'Choose an end time.'; return; }
+    const duration = Math.round((new Date(endStr) - new Date(timeStr)) / 60000);
+    if(!duration || duration <= 0){
+      status.textContent = 'End time must be after start time.';
       return;
     }
     params.duration = duration;
@@ -609,26 +729,31 @@ function loadData(){
     try{
       if(data.error){ throw new Error(data.error); }
 
-      straining = (data.straining || []).map(s => {
+      allStraining = (data.straining || []).map(s => {
         const start = new Date(s.start);
         const end = new Date(s.end);
-        return {date: dateKeyFromDate(start), start, end, note: s.note || ''};
+        return {date: dateKeyFromDate(start), start, end, note: s.note || '', cat: s.cat || ''};
       });
-      pee = (data.pee || []).map(p => {
+      allPee = (data.pee || []).map(p => {
         const time = new Date(p.time);
-        return {date: dateKeyFromDate(time), time, rating: Number(p.rating), note: p.note || ''};
+        return {date: dateKeyFromDate(time), time, rating: Number(p.rating), note: p.note || '', cat: p.cat || ''};
       });
-      stressEvents = (data.events || []).map(ev => {
+      allPoop = (data.poop || []).map(p => {
+        const time = new Date(p.time);
+        return {date: dateKeyFromDate(time), time, rating: Number(p.rating), note: p.note || '', cat: p.cat || ''};
+      });
+      allStressEvents = (data.events || []).map(ev => {
         const time = new Date(ev.time);
-        return {date: dateKeyFromDate(time), time, label: ev.label, rating: ev.rating};
+        return {date: dateKeyFromDate(time), time, label: ev.label, rating: ev.rating, cat: ev.cat || ''};
       });
+      applyCatFilter();
       if(data.logo){
         updateIconsAndManifest(data.logo);
       } else if(data.logoDebug){
         console.log('Logo not found — diagnostic info:', data.logoDebug);
       }
 
-      const eventDates = [...straining.map(s=>s.date), ...pee.map(p=>p.date)];
+      const eventDates = [...allStraining.map(s=>s.date), ...allPee.map(p=>p.date)];
       const todayKey = dateKeyFromDate(new Date());
       let minKey = eventDates.length ? eventDates.reduce((a,b) => a < b ? a : b) : todayKey;
       let maxKey = eventDates.length ? eventDates.reduce((a,b) => a > b ? a : b) : todayKey;
@@ -806,6 +931,7 @@ function renderListView(){
           '<option value="all">All entries</option>' +
           '<option value="straining">Straining only</option>' +
           '<option value="pee">Pee only</option>' +
+          '<option value="poop">Poop only</option>' +
         '</select>' +
         '<button id="listSortBtn" class="list-sort-toggle" onclick="toggleListSort()"></button>' +
       '</div>' +
@@ -847,17 +973,24 @@ function renderListBody(){
   }
 
   let rows = [];
-  if(listType !== 'pee'){
+  if(listType === 'all' || listType === 'straining'){
     straining.forEach(s => rows.push({
       date: s.date, time: s.start, type: '🚽 Straining',
       detail: Math.round((s.end - s.start)/60000) + ' min',
       note: s.note || ''
     }));
   }
-  if(listType !== 'straining'){
+  if(listType === 'all' || listType === 'pee'){
     pee.forEach(p => rows.push({
       date: p.date, time: p.time, type: '💧 Pee',
       detail: 'Size ' + p.rating + '/6',
+      note: p.note || ''
+    }));
+  }
+  if(listType === 'all' || listType === 'poop'){
+    poop.forEach(p => rows.push({
+      date: p.date, time: p.time, type: '💩 Poop',
+      detail: 'Consistency ' + p.rating + '/6',
       note: p.note || ''
     }));
   }
@@ -978,12 +1111,18 @@ function renderStatsGrid(stats){
   });
 }
 
-function maxPeeGapHours(dayPee){
-  if(dayPee.length < 2) return null;
-  const sorted = [...dayPee].sort((a,b) => a.time - b.time);
-  let maxGap = 0;
-  for(let i=1; i<sorted.length; i++){
-    maxGap = Math.max(maxGap, (sorted[i].time - sorted[i-1].time)/3600000);
+// Looks at gaps between consecutive pees in the FULL chronological timeline
+// (not filtered to a single day first), so a gap spanning midnight — e.g.
+// yesterday's last pee to today's first — correctly reads as one full gap
+// instead of being invisible on both sides of the day boundary.
+function maxPeeGapHours(date){
+  const sortedAll = [...pee].sort((a,b) => a.time - b.time);
+  let maxGap = null;
+  for(let i=0; i<sortedAll.length; i++){
+    if(sortedAll[i].date === date && i > 0){
+      const gap = (sortedAll[i].time - sortedAll[i-1].time) / 3600000;
+      maxGap = maxGap === null ? gap : Math.max(maxGap, gap);
+    }
   }
   return maxGap;
 }
@@ -996,7 +1135,7 @@ function renderDayStats(date){
   const durations = dayStraining.map(s => Math.round((s.end - s.start)/60000));
   const ratings = dayPee.map(p => p.rating);
   const longestStraining = durations.length ? Math.max(...durations) : null;
-  const gapHours = maxPeeGapHours(dayPee);
+  const gapHours = maxPeeGapHours(date);
 
   const peeCountWarn = dayPee.length && (dayPee.length < PEE_COUNT_LOW || dayPee.length > PEE_COUNT_HIGH) ? 2 : 0;
   const gapWarn = gapHours === null ? 0 : (gapHours > MAX_PEE_GAP_HOURS ? 2 : (gapHours > MAX_PEE_GAP_HOURS*0.75 ? 1 : 0));
@@ -1125,7 +1264,11 @@ function showTooltip(clientX, clientY, lines){
     .style('top', clientY + 'px')
     .html(html);
 }
-function hideTooltip(){ d3.select('#tooltip').style('opacity',0); }
+let activeGuideLine = null;
+function hideTooltip(){
+  d3.select('#tooltip').style('opacity',0);
+  if(activeGuideLine) activeGuideLine.style('opacity', 0);
+}
 document.addEventListener('click', hideTooltip);
 
 // Large, clear number + a plain visual bar (no text on the bar itself) for
@@ -1219,33 +1362,82 @@ function attachDragGestures(overlaySelection, onMove, onEnd){
 
 // ---- Day view ----
 
-const CHART_ICONS = { weather: '🌦️', feeding: '🍽️', events: '⚡' };
-
 function renderDayView(date){
   const container = document.getElementById('viewContainer');
+  const overlayLabels = {none:'None', weather:'Weather', feeding:'Feedings', stress:'Stressful events'};
   container.innerHTML =
-    `<div class="chart-card"><h3>${CHART_ICONS.weather} Weather</h3><div class="chart-canvas" id="chartWeather"></div>` +
+    '<div class="chart-card">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">' +
+        '<h3 style="margin:0;">Straining &amp; pee &amp; poop</h3>' +
+        '<div style="position:relative;">' +
+          '<button class="overlay-menu-btn" onclick="toggleOverlayMenu()">⋯ ' + overlayLabels[dayOverlay] + '</button>' +
+          '<div id="overlayMenu" class="overlay-menu" style="display:none;">' +
+            Object.keys(overlayLabels).map(k =>
+              '<button class="' + (dayOverlay===k?'active':'') + '" onclick="setDayOverlay(\'' + k + '\')">' + overlayLabels[k] + '</button>'
+            ).join('') +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="scroll-hint">← scroll to see the full day →</div>' +
+      '<div class="chart-scroll" id="chartScroll"><div class="chart-canvas" id="chartDay"></div></div>' +
       '<div class="legend">' +
         '<span><span class="swatch" style="background:var(--strain-soft);border:1px solid var(--strain);"></span>Straining</span>' +
         '<span><span class="swatch" style="background:var(--pee);"></span>Pee (height = size)</span>' +
-        '<span><span class="swatch" style="background:#1c4f73;"></span>Weather (height = intensity)</span>' +
-      '</div></div>' +
-    `<div class="chart-card"><h3>${CHART_ICONS.feeding} Feedings</h3><div class="chart-canvas" id="chartFeeding"></div>` +
-      '<div class="legend">' +
-        '<span><span class="swatch" style="background:var(--strain-soft);border:1px solid var(--strain);"></span>Straining</span>' +
-        '<span><span class="swatch" style="background:var(--pee);"></span>Pee (height = size)</span>' +
-        '<span><span class="swatch" style="background:#c99a3a;"></span>Feeding time</span>' +
-      '</div></div>' +
-    `<div class="chart-card"><h3>${CHART_ICONS.events} Stressful events</h3><div class="chart-canvas" id="chartEvents"></div>` +
-      '<div class="legend">' +
-        '<span><span class="swatch" style="background:var(--strain-soft);border:1px solid var(--strain);"></span>Straining</span>' +
-        '<span><span class="swatch" style="background:var(--pee);"></span>Pee (height = size)</span>' +
-        '<span><span class="swatch" style="background:#7a3b8c;"></span>Stressful event</span>' +
-      '</div></div>';
+        '<span><span class="swatch" style="background:#6b4a2f;"></span>Poop (height = consistency)</span>' +
+        (dayOverlay === 'weather' ? '<span><span class="swatch" style="background:#1c4f73;"></span>Weather</span>' : '') +
+        (dayOverlay === 'feeding' ? '<span><span class="swatch" style="background:#c99a3a;"></span>Feeding time</span>' : '') +
+        (dayOverlay === 'stress' ? '<span><span class="swatch" style="background:#7a3b8c;"></span>Stressful event</span>' : '') +
+      '</div>' +
+    '</div>' +
+    '<div class="chart-card"><h3>Today\'s log</h3><div id="dayInlineList"></div></div>';
 
-  drawCoreDayChart('chartWeather', date, drawWeatherArea);
-  drawCoreDayChart('chartFeeding', date, drawFeedingLines);
-  drawCoreDayChart('chartEvents', date, drawStressEventLines);
+  const drawExtraMap = {weather: drawWeatherArea, feeding: drawFeedingLines, stress: drawStressEventLines};
+  drawCoreDayChart('chartDay', date, drawExtraMap[dayOverlay] || null);
+  renderDayInlineList(date);
+}
+
+function toggleOverlayMenu(){
+  const menu = document.getElementById('overlayMenu');
+  menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+}
+function setDayOverlay(type){
+  dayOverlay = type;
+  document.getElementById('overlayMenu').style.display = 'none';
+  renderDayView(dateList[currentDateIdx]);
+}
+document.addEventListener('click', function(e){
+  const menu = document.getElementById('overlayMenu');
+  if(menu && menu.style.display !== 'none' && !e.target.closest('.overlay-menu-btn') && !e.target.closest('.overlay-menu')){
+    menu.style.display = 'none';
+  }
+});
+
+// Compact table of the day's straining/pee/poop entries, shown by default
+// under the chart rather than requiring a switch to the List tab.
+function renderDayInlineList(date){
+  const rows = [];
+  straining.filter(s=>s.date===date).forEach(s => rows.push({
+    time: s.start, type: '🚽 Straining', detail: Math.round((s.end-s.start)/60000) + ' min', note: s.note||''
+  }));
+  pee.filter(p=>p.date===date).forEach(p => rows.push({
+    time: p.time, type: '💧 Pee', detail: 'Size ' + p.rating + '/6', note: p.note||''
+  }));
+  poop.filter(p=>p.date===date).forEach(p => rows.push({
+    time: p.time, type: '💩 Poop', detail: 'Consistency ' + p.rating + '/6', note: p.note||''
+  }));
+  rows.sort((a,b) => a.time - b.time);
+
+  const el = document.getElementById('dayInlineList');
+  if(!rows.length){
+    el.innerHTML = '<div class="empty-msg">No entries logged today.</div>';
+    return;
+  }
+  let html = '<table class="list-table"><thead><tr><th>Time</th><th>Type</th><th>Detail</th><th>Note</th></tr></thead><tbody>';
+  rows.forEach(r => {
+    html += '<tr><td>' + fmtTime(r.time) + '</td><td>' + r.type + '</td><td>' + r.detail + '</td><td>' + escapeHtml(r.note) + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
 }
 
 // Weather overlaid directly on the same plot as straining/pee (drawn first,
@@ -1312,7 +1504,6 @@ function drawFeedingLines(g, x, plotWidth, plotHeight, dayStart){
     .attr('stroke', '#c99a3a').attr('stroke-width', 1.5)
     .attr('stroke-dasharray', '4,3').style('opacity', 0.7);
 
-  // Plain flag shape, no on-chart text — tap/scrub reveals which meal it is.
   const flagW = 11, flagH = 9;
   const flagX = d => Math.max(0, Math.min(plotWidth, x(d.time)));
   g.selectAll('.feedflag').data(marks).enter().append('path')
@@ -1326,7 +1517,7 @@ function drawFeedingLines(g, x, plotWidth, plotHeight, dayStart){
       const d = Math.abs(x(m.time) - offsetX);
       if(d < dist){ dist = d; nearest = m; }
     });
-    if(nearest && dist < 14) return [nearest.label + ' · ' + fmtTime(nearest.time)];
+    if(nearest && dist < 20) return [nearest.label + ' · ' + fmtTime(nearest.time)];
     return null;
   };
 }
@@ -1354,7 +1545,7 @@ function drawStressEventLines(g, x, plotWidth, plotHeight, dayStart, weather, da
       const d = Math.abs(x(ev.time) - offsetX);
       if(d < dist){ dist = d; nearest = ev; }
     });
-    if(nearest && dist < 14){
+    if(nearest && dist < 20){
       let line = escapeHtml(nearest.label) + ' · ' + fmtTime(nearest.time);
       if(nearest.rating) line += ratingBarHtml(nearest.rating, 6);
       return [line];
@@ -1363,24 +1554,26 @@ function drawStressEventLines(g, x, plotWidth, plotHeight, dayStart, weather, da
   };
 }
 
-// Shared Day-view chart: draws the straining/pee core (bands, night gradient,
-// episodes, pee bars, axes) plus one swappable "extra signal" overlay drawn
-// directly onto the same plot — every chart type works as a true overlay now,
-// none reserve separate strip space. Scrub + swipe use an overlay covering
-// the FULL canvas so dragging works anywhere on the chart, not just a narrow
-// hit-zone.
+// Shared Day-view chart: draws the straining/pee/poop core (bands, night
+// gradient, axes) plus one optional overlay, at a fixed pixel-per-hour scale
+// wide enough to need horizontal scrolling — a real scrollable timeline
+// (native scroll, no custom gesture code) instead of squeezing 24 hours into
+// one screen width. Tap any mark for details; tap elsewhere to dismiss.
+const PX_PER_HOUR = 70;
 function drawCoreDayChart(containerId, date, drawExtra){
   const area = document.getElementById(containerId);
+  const scrollWrap = document.getElementById('chartScroll');
   const dayStraining = straining.filter(s => s.date === date);
   const dayPee = pee.filter(p => p.date === date);
+  const dayPoop = poop.filter(p => p.date === date);
   const weather = weatherByDate[date];
 
   const dayStart = new Date(date + 'T00:00:00');
   const dayEnd = new Date(dayStart.getTime() + 24*3600000);
 
-  const margin = {top: 32, right: 40, bottom: 32, left: 10};
-  const width = Math.max(area.clientWidth || 320, 260);
-  const plotWidth = width - margin.left - margin.right;
+  const margin = {top: 32, right: 16, bottom: 32, left: 38};
+  const plotWidth = PX_PER_HOUR * 24;
+  const width = plotWidth + margin.left + margin.right;
   const plotHeight = 260;
 
   const svg = d3.select(area).append('svg')
@@ -1404,15 +1597,12 @@ function drawCoreDayChart(containerId, date, drawExtra){
     .attr('y', 0).attr('height', plotHeight)
     .attr('fill', d => d.idx % 2 === 0 ? 'var(--band-a)' : 'var(--band-b)');
 
-  // Night shading: mostly a solid, clearly-readable night tint, with only a
-  // short twilight transition around sunrise/sunset — not a fade across the
-  // whole night. A subtle vignette makes the outer edges (deep night, near
-  // midnight) a touch darker/bluer than the middle of the night span, for a
-  // bit of visual depth without raising the overall opacity.
+  // Night shading: mostly solid, with a short twilight transition and a
+  // subtle deep-night vignette at the outer edges.
   if(weather && weather.sunrise && weather.sunset){
     const NIGHT_OPACITY = 0.09;
     const NIGHT_EDGE_OPACITY = 0.25;
-    const TWILIGHT_MIN = 100; // minutes of fade on either side of sunrise/sunset
+    const TWILIGHT_MIN = 100;
     const nightColor = c => `rgba(16,22,46,${c})`;
     const twilightStart = new Date(weather.sunrise.getTime() - TWILIGHT_MIN*60000);
     const twilightEnd = new Date(weather.sunset.getTime() + TWILIGHT_MIN*60000);
@@ -1437,8 +1627,6 @@ function drawCoreDayChart(containerId, date, drawExtra){
       .data([{o:'0%', c:nightColor(0)},{o:'100%', c:nightColor(NIGHT_OPACITY)}])
       .enter().append('stop').attr('offset', d=>d.o).attr('stop-color', d=>d.c);
 
-    // Deep-night vignette: slightly darker right at the day boundary (the
-    // middle of the actual night), easing back to the base night tone.
     defsNight.append('linearGradient')
       .attr('id', gradEdgeAMId).attr('gradientUnits','userSpaceOnUse')
       .attr('x1', x(dayStart)).attr('y1',0).attr('x2', x(twilightStart)).attr('y2',0)
@@ -1453,19 +1641,15 @@ function drawCoreDayChart(containerId, date, drawExtra){
       .data([{o:'0%', c:nightColor(NIGHT_OPACITY)},{o:'100%', c:nightColor(NIGHT_EDGE_OPACITY)}])
       .enter().append('stop').attr('offset', d=>d.o).attr('stop-color', d=>d.c);
 
-    // Solid night (before the morning twilight window starts) — vignette gradient
     g.append('rect')
       .attr('x', x(dayStart)).attr('width', Math.max(0, x(twilightStart) - x(dayStart)))
       .attr('y', 0).attr('height', plotHeight).attr('fill', 'url(#' + gradEdgeAMId + ')');
-    // Morning twilight fade (night -> day)
     g.append('rect')
       .attr('x', x(twilightStart)).attr('width', Math.max(0, x(weather.sunrise) - x(twilightStart)))
       .attr('y', 0).attr('height', plotHeight).attr('fill', 'url(#' + gradMorningId + ')');
-    // Evening twilight fade (day -> night)
     g.append('rect')
       .attr('x', x(weather.sunset)).attr('width', Math.max(0, x(twilightEnd) - x(weather.sunset)))
       .attr('y', 0).attr('height', plotHeight).attr('fill', 'url(#' + gradEveningId + ')');
-    // Solid night (after the evening twilight window ends) — vignette gradient
     g.append('rect')
       .attr('x', x(twilightEnd)).attr('width', Math.max(0, x(dayEnd) - x(twilightEnd)))
       .attr('y', 0).attr('height', plotHeight).attr('fill', 'url(#' + gradEdgePMId + ')');
@@ -1478,12 +1662,28 @@ function drawCoreDayChart(containerId, date, drawExtra){
     });
   }
 
-  const extraTooltipFn = drawExtra(g, x, plotWidth, plotHeight, dayStart, weather, date);
+  const extraTooltipFn = drawExtra ? drawExtra(g, x, plotWidth, plotHeight, dayStart, weather, date) : null;
 
   g.selectAll('.gridline').data([1,2,3,4,5,6]).enter().append('line')
     .attr('class','gridline')
     .attr('x1', 0).attr('x2', plotWidth)
     .attr('y1', d => y(d)).attr('y2', d => y(d));
+
+  const guideLine = g.append('line')
+    .attr('y1', 0).attr('y2', plotHeight)
+    .attr('stroke', 'var(--ink)').attr('stroke-width', 1)
+    .attr('stroke-dasharray', '3,3').style('opacity', 0).style('pointer-events', 'none');
+  activeGuideLine = guideLine;
+
+  function hoursSinceSunrise(t){
+    if(!weather || !weather.sunrise) return null;
+    return (t - weather.sunrise) / 3600000;
+  }
+  function showAt(clientX, offsetX, lines){
+    guideLine.attr('x1', offsetX).attr('x2', offsetX).style('opacity', 1);
+    const rect = svg.node().getBoundingClientRect();
+    showTooltip(clientX, rect.top + margin.top, lines);
+  }
 
   g.selectAll('.strain').data(dayStraining).enter().append('rect')
     .attr('class','strain')
@@ -1491,9 +1691,16 @@ function drawCoreDayChart(containerId, date, drawExtra){
     .attr('width', d => Math.max(5, x(d.end) - x(d.start)))
     .attr('y', 0).attr('height', plotHeight)
     .attr('fill', 'var(--strain-soft)')
-    .attr('stroke', 'var(--strain)').attr('stroke-width', 1);
+    .attr('stroke', 'var(--strain)').attr('stroke-width', 1)
+    .on('click', function(event, d){
+      event.stopPropagation();
+      const mins = Math.round((d.end - d.start)/60000);
+      let line = 'Straining ' + fmtTime(d.start) + '–' + fmtTime(d.end) + ' (' + mins + ' min)';
+      if(d.note) line += '<br><span style="opacity:0.85;">' + escapeHtml(d.note) + '</span>';
+      showAt(event.clientX, x(d.start), [line]);
+    });
 
-  const barW = Math.max(8, Math.min(18, plotWidth/40));
+  const barW = Math.max(8, Math.min(18, PX_PER_HOUR/5));
   g.selectAll('.pee').data(dayPee).enter().append('rect')
     .attr('class','pee')
     .attr('x', d => x(d.time) - barW/2)
@@ -1502,84 +1709,76 @@ function drawCoreDayChart(containerId, date, drawExtra){
     .attr('height', d => plotHeight - y(d.rating))
     .attr('rx', 3)
     .attr('fill', 'var(--pee)')
-    .attr('stroke', '#1a3f3d').attr('stroke-width', 0.5);
+    .attr('stroke', '#1a3f3d').attr('stroke-width', 0.5)
+    .on('click', function(event, d){
+      event.stopPropagation();
+      let line = 'Pee at ' + fmtTime(d.time) + ratingBarHtml(d.rating, 6);
+      if(d.note) line += '<span style="opacity:0.85;">' + escapeHtml(d.note) + '</span>';
+      showAt(event.clientX, x(d.time), [line]);
+    });
 
-  if(!dayStraining.length && !dayPee.length){
+  g.selectAll('.poop').data(dayPoop).enter().append('rect')
+    .attr('class','poop')
+    .attr('x', d => x(d.time) - barW/2 - barW - 2)
+    .attr('width', barW)
+    .attr('y', d => y(d.rating))
+    .attr('height', d => plotHeight - y(d.rating))
+    .attr('rx', 3)
+    .attr('fill', '#6b4a2f')
+    .attr('stroke', '#3a2a1c').attr('stroke-width', 0.5)
+    .on('click', function(event, d){
+      event.stopPropagation();
+      let line = 'Poop at ' + fmtTime(d.time) + ratingBarHtml(d.rating, 6);
+      if(d.note) line += '<span style="opacity:0.85;">' + escapeHtml(d.note) + '</span>';
+      showAt(event.clientX, x(d.time), [line]);
+    });
+
+  if(!dayStraining.length && !dayPee.length && !dayPoop.length){
     g.append('text')
       .attr('x', plotWidth/2).attr('y', plotHeight/2)
       .attr('text-anchor', 'middle').attr('fill', 'var(--ink-soft)').attr('font-size', '13px')
-      .text('No straining or pee logged this day');
+      .text('No straining, pee, or poop logged this day');
   }
 
-  const xTickCount = Math.max(3, Math.floor(plotWidth / 58));
   g.append('g').attr('class','axis')
     .attr('transform', `translate(0,${plotHeight})`)
-    .call(d3.axisBottom(x).ticks(xTickCount).tickFormat(d3.timeFormat('%H:%M')));
+    .call(d3.axisBottom(x).ticks(d3.timeHour.every(1)).tickFormat(d3.timeFormat('%H:%M')));
   g.append('g').attr('class','axis')
-    .attr('transform', `translate(${plotWidth},0)`)
-    .call(d3.axisRight(y).ticks(6).tickFormat(d3.format('d')));
+    .call(d3.axisLeft(y).ticks(6).tickFormat(d3.format('d')));
 
-  const guideLine = g.append('line')
-    .attr('y1', 0).attr('y2', plotHeight)
-    .attr('stroke', 'var(--ink)').attr('stroke-width', 1)
-    .attr('stroke-dasharray', '3,3').style('opacity', 0).style('pointer-events', 'none');
-
-  function hoursSinceSunrise(t){
-    if(!weather || !weather.sunrise) return null;
-    return (t - weather.sunrise) / 3600000;
-  }
-
-  function updateScrub(offsetX){
-    offsetX = Math.max(0, Math.min(plotWidth, offsetX));
-    const t = x.invert(offsetX);
-    const containing = dayStraining.find(s => t >= s.start && t <= s.end);
-
-    let nearestPee = null, nearestDist = Infinity;
-    dayPee.forEach(p => {
-      const d = Math.abs(x(p.time) - offsetX);
-      if(d < nearestDist){ nearestDist = d; nearestPee = p; }
-    });
-    const showPee = nearestPee && nearestDist < 24;
-
-    guideLine.attr('x1', offsetX).attr('x2', offsetX).style('opacity', 1);
-
+  // Tap the background (not a mark) to inspect that point in time, same info
+  // a scrub used to show — a tap doesn't fight native horizontal scrolling
+  // the way a drag-based overlay would, so no custom gesture code is needed.
+  const overlay = g.insert('rect', ':first-child')
+    .attr('x', 0).attr('y', -24).attr('width', plotWidth).attr('height', plotHeight + 24)
+    .attr('fill', 'transparent');
+  overlay.on('click', function(event){
+    event.stopPropagation();
+    const [offsetX] = d3.pointer(event, g.node());
+    const t = x.invert(Math.max(0, Math.min(plotWidth, offsetX)));
     let lines = [fmtTime(t)];
-    if(containing){
-      const mins = Math.round((containing.end - containing.start)/60000);
-      let strainLine = 'Straining ' + fmtTime(containing.start) + '–' + fmtTime(containing.end) + ' (' + mins + ' min)';
-      if(containing.note) strainLine += '<br><span style="opacity:0.85;">' + escapeHtml(containing.note) + '</span>';
-      lines.push(strainLine);
-    }
-    if(showPee){
-      let peeLine = 'Pee at ' + fmtTime(nearestPee.time) + ratingBarHtml(nearestPee.rating, 6);
-      if(nearestPee.note) peeLine += '<span style="opacity:0.85;">' + escapeHtml(nearestPee.note) + '</span>';
-      lines.push(peeLine);
-    }
     const extraLines = extraTooltipFn ? extraTooltipFn(t, offsetX) : null;
     if(extraLines) lines.push(...extraLines);
     const hrs = hoursSinceSunrise(t);
-    if(hrs !== null){
-      lines.push(hrs >= 0 ? hrs.toFixed(1) + 'h after sunrise' : Math.abs(hrs).toFixed(1) + 'h before sunrise');
+    if(hrs !== null) lines.push(hrs >= 0 ? hrs.toFixed(1) + 'h after sunrise' : Math.abs(hrs).toFixed(1) + 'h before sunrise');
+    showAt(event.clientX, offsetX, lines);
+  });
+
+  // Auto-scroll to something relevant: "now" if viewing today, otherwise the
+  // first logged event, otherwise a reasonable default (6am).
+  requestAnimationFrame(() => {
+    const containerWidth = scrollWrap.clientWidth;
+    let scrollTarget;
+    const todayKey = dateKeyFromDate(new Date());
+    if(date === todayKey){
+      scrollTarget = x(new Date()) + margin.left - containerWidth/2;
+    } else {
+      const firstEvent = [...dayStraining.map(s=>s.start), ...dayPee.map(p=>p.time), ...dayPoop.map(p=>p.time)]
+        .sort((a,b)=>a-b)[0];
+      scrollTarget = firstEvent ? x(firstEvent) + margin.left - 60 : x(new Date(dayStart.getTime()+6*3600000)) + margin.left - 60;
     }
-    return lines;
-  }
-
-  // Overlay covers the ENTIRE svg canvas (not just the inner plot rect), so a
-  // drag started over the axis or margins still scrubs/swipes instead of
-  // landing in a dead zone.
-  const overlay = svg.append('rect')
-    .attr('x', 0).attr('y', 0)
-    .attr('width', width).attr('height', plotHeight + margin.top + margin.bottom)
-    .attr('fill', 'transparent');
-
-  attachDragGestures(overlay,
-    (rawOffsetX, event) => {
-      const rect = svg.node().getBoundingClientRect();
-      const clampedX = Math.max(0, Math.min(plotWidth, rawOffsetX - margin.left));
-      showTooltip(rect.left + margin.left + clampedX, rect.top + margin.top, updateScrub(rawOffsetX - margin.left));
-    },
-    () => guideLine.style('opacity', 0)
-  );
+    scrollWrap.scrollLeft = Math.max(0, scrollTarget);
+  });
 }
 
 // ---- Week & Month views: 3 charts each (straining time, pee count, pee total),
