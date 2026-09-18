@@ -160,6 +160,17 @@
   .overlay-menu button:hover:not(.active){background:var(--paper);}
   .chart-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border-radius:8px;}
   .scroll-hint{text-align:center;font-size:0.7rem;color:var(--ink-soft);opacity:0.6;margin-bottom:4px;}
+  .chart-viewport{position:relative;}
+  .day-marker-line{
+    position:absolute; left:50%; top:0; bottom:0; width:2px;
+    background:var(--ink); opacity:0.55; pointer-events:none; z-index:5;
+    transform:translateX(-50%);
+  }
+  .day-marker-info{
+    min-height:1.6em; padding:9px 11px; background:var(--paper);
+    border-radius:8px; font-size:0.82rem; margin-top:8px; line-height:1.5;
+  }
+  .day-marker-info .marker-time{font-weight:700;}
   .list-table{width:100%;border-collapse:collapse;font-size:0.82rem;}
   .list-table th{text-align:left;padding:6px 8px;color:var(--ink-soft);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.03em;border-bottom:2px solid var(--ink);}
   .list-table td{padding:7px 8px;border-bottom:1px solid var(--line);}
@@ -295,9 +306,11 @@
               </div>
 
               <div id="fieldPoopRating" style="display:none;">
-                <label style="font-size:0.78rem;color:var(--ink-soft);">Consistency (1 = hard, 6 = very loose)</label>
-                <input id="poopRating" type="range" min="1" max="6" value="3" style="width:100%;">
-                <div style="text-align:center;font-weight:700;" id="poopRatingVal">3</div>
+                <label style="font-size:0.78rem;color:var(--ink-soft);">Amount</label>
+                <div style="display:flex;gap:6px;margin-top:4px;">
+                  <button type="button" id="poopAmountLow" class="entry-type-btn" onclick="setPoopAmount(1)" style="flex:1;">Barely any</button>
+                  <button type="button" id="poopAmountHigh" class="entry-type-btn" onclick="setPoopAmount(2)" style="flex:1;">Good amount</button>
+                </div>
               </div>
 
               <div id="fieldStressRating" style="display:none;">
@@ -368,7 +381,7 @@ let allStraining = [], allPee = [], allPoop = [], allStressEvents = [];
 // different sections of an app — rename these to your actual cats' names.
 // Entries with no Cat value (written before this feature existed) count as
 // belonging to the first cat, for backward compatibility.
-const CATS = ['Puddle', 'Cat 2'];
+const CATS = ['Puddle', 'Mochi'];
 let currentCat = CATS[0];
 function belongsToCurrentCat(entry){
   return (entry.cat || CATS[0]) === currentCat;
@@ -444,11 +457,16 @@ function showState(kind, message){
   area.innerHTML = '<div class="state-msg' + (kind==='error' ? ' error' : '') + '">' + spinner + message + '</div>';
 }
 
+let catPhotos = {}; // catName -> data URI, from the sheet's Config tab
+
 function renderCatTabs(){
   const el = document.getElementById('catTabs');
-  el.innerHTML = CATS.map(c =>
-    `<button class="${c === currentCat ? 'active' : ''}" onclick="switchCat('${c.replace(/'/g,"\\'")}')">${escapeHtml(c)}</button>`
-  ).join('');
+  el.innerHTML = CATS.map(c => {
+    const photo = catPhotos[c]
+      ? `<img src="${catPhotos[c]}" alt="" style="width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:-6px;margin-right:6px;">`
+      : '';
+    return `<button class="${c === currentCat ? 'active' : ''}" onclick="switchCat('${c.replace(/'/g,"\\'")}')">${photo}${escapeHtml(c)}</button>`;
+  }).join('');
 }
 
 function switchCat(cat){
@@ -607,8 +625,7 @@ function toggleAddEventForm(){
     document.getElementById('eventLabel').value = '';
     document.getElementById('peeRating').value = 3;
     document.getElementById('peeRatingVal').textContent = '3';
-    document.getElementById('poopRating').value = 3;
-    document.getElementById('poopRatingVal').textContent = '3';
+    setPoopAmount(2);
     document.getElementById('stressRating').value = 3;
     document.getElementById('stressRatingVal').textContent = '3';
 
@@ -630,9 +647,18 @@ function toggleAddEventForm(){
   }
 }
 
+let poopAmountValue = 2;
+function setPoopAmount(v){
+  poopAmountValue = v;
+  document.getElementById('poopAmountLow').classList.toggle('active', v === 1);
+  document.getElementById('poopAmountHigh').classList.toggle('active', v === 2);
+}
+function poopAmountLabel(rating){
+  return rating <= 1 ? 'Barely any' : 'Good amount';
+}
+
 document.addEventListener('input', function(e){
   if(e.target.id === 'peeRating') document.getElementById('peeRatingVal').textContent = e.target.value;
-  if(e.target.id === 'poopRating') document.getElementById('poopRatingVal').textContent = e.target.value;
   if(e.target.id === 'stressRating') document.getElementById('stressRatingVal').textContent = e.target.value;
   if(e.target.id === 'eventTime' || e.target.id === 'strainEndTime') updateDurationPreview();
 });
@@ -653,7 +679,7 @@ function submitStressEvent(){
     params.rating = document.getElementById('peeRating').value;
     params.note = note;
   } else if(currentEntryType === 'poop'){
-    params.rating = document.getElementById('poopRating').value;
+    params.rating = poopAmountValue;
     params.note = note;
   } else if(currentEntryType === 'straining'){
     const endStr = document.getElementById('strainEndTime').value;
@@ -752,6 +778,8 @@ function loadData(){
       } else if(data.logoDebug){
         console.log('Logo not found — diagnostic info:', data.logoDebug);
       }
+      catPhotos = data.catPhotos || {};
+      if(CATS.length > 1) renderCatTabs();
 
       const eventDates = [...allStraining.map(s=>s.date), ...allPee.map(p=>p.date)];
       const todayKey = dateKeyFromDate(new Date());
@@ -990,7 +1018,7 @@ function renderListBody(){
   if(listType === 'all' || listType === 'poop'){
     poop.forEach(p => rows.push({
       date: p.date, time: p.time, type: '💩 Poop',
-      detail: 'Consistency ' + p.rating + '/6',
+      detail: poopAmountLabel(p.rating),
       note: p.note || ''
     }));
   }
@@ -1365,12 +1393,13 @@ function attachDragGestures(overlaySelection, onMove, onEnd){
 function renderDayView(date){
   const container = document.getElementById('viewContainer');
   const overlayLabels = {none:'None', weather:'Weather', feeding:'Feedings', stress:'Stressful events'};
+  const menuBtnLabel = dayOverlay === 'none' ? '⋯' : '⋯ ' + overlayLabels[dayOverlay];
   container.innerHTML =
     '<div class="chart-card">' +
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">' +
         '<h3 style="margin:0;">Straining &amp; pee &amp; poop</h3>' +
         '<div style="position:relative;">' +
-          '<button class="overlay-menu-btn" onclick="toggleOverlayMenu()">⋯ ' + overlayLabels[dayOverlay] + '</button>' +
+          '<button class="overlay-menu-btn" onclick="toggleOverlayMenu()">' + menuBtnLabel + '</button>' +
           '<div id="overlayMenu" class="overlay-menu" style="display:none;">' +
             Object.keys(overlayLabels).map(k =>
               '<button class="' + (dayOverlay===k?'active':'') + '" onclick="setDayOverlay(\'' + k + '\')">' + overlayLabels[k] + '</button>'
@@ -1378,12 +1407,16 @@ function renderDayView(date){
           '</div>' +
         '</div>' +
       '</div>' +
-      '<div class="scroll-hint">← scroll to see the full day →</div>' +
-      '<div class="chart-scroll" id="chartScroll"><div class="chart-canvas" id="chartDay"></div></div>' +
+      '<div class="scroll-hint">← scroll — the centered time is always active</div>' +
+      '<div class="chart-viewport" id="chartViewport">' +
+        '<div class="chart-scroll" id="chartScroll"><div class="chart-canvas" id="chartDay"></div></div>' +
+        '<div class="day-marker-line"></div>' +
+      '</div>' +
+      '<div id="dayMarkerInfo" class="day-marker-info"></div>' +
       '<div class="legend">' +
         '<span><span class="swatch" style="background:var(--strain-soft);border:1px solid var(--strain);"></span>Straining</span>' +
         '<span><span class="swatch" style="background:var(--pee);"></span>Pee (height = size)</span>' +
-        '<span><span class="swatch" style="background:#6b4a2f;"></span>Poop (height = consistency)</span>' +
+        '<span><span class="swatch" style="background:#6b4a2f;"></span>Poop (height = amount)</span>' +
         (dayOverlay === 'weather' ? '<span><span class="swatch" style="background:#1c4f73;"></span>Weather</span>' : '') +
         (dayOverlay === 'feeding' ? '<span><span class="swatch" style="background:#c99a3a;"></span>Feeding time</span>' : '') +
         (dayOverlay === 'stress' ? '<span><span class="swatch" style="background:#7a3b8c;"></span>Stressful event</span>' : '') +
@@ -1423,7 +1456,7 @@ function renderDayInlineList(date){
     time: p.time, type: '💧 Pee', detail: 'Size ' + p.rating + '/6', note: p.note||''
   }));
   poop.filter(p=>p.date===date).forEach(p => rows.push({
-    time: p.time, type: '💩 Poop', detail: 'Consistency ' + p.rating + '/6', note: p.note||''
+    time: p.time, type: '💩 Poop', detail: poopAmountLabel(p.rating), note: p.note||''
   }));
   rows.sort((a,b) => a.time - b.time);
 
@@ -1546,8 +1579,8 @@ function drawStressEventLines(g, x, plotWidth, plotHeight, dayStart, weather, da
       if(d < dist){ dist = d; nearest = ev; }
     });
     if(nearest && dist < 20){
-      let line = escapeHtml(nearest.label) + ' · ' + fmtTime(nearest.time);
-      if(nearest.rating) line += ratingBarHtml(nearest.rating, 6);
+      let line = '⚡ ' + escapeHtml(nearest.label) + ' at ' + fmtTime(nearest.time);
+      if(nearest.rating) line += ' · level ' + nearest.rating + '/6';
       return [line];
     }
     return null;
@@ -1582,6 +1615,7 @@ function drawCoreDayChart(containerId, date, drawExtra){
 
   const x = d3.scaleTime().domain([dayStart, dayEnd]).range([0, plotWidth]);
   const y = d3.scaleLinear().domain([0,6]).range([plotHeight, 0]);
+  const poopY = d3.scaleLinear().domain([0,2]).range([plotHeight, 0]); // binary amount, own scale so the two levels are clearly distinct
 
   let bandT = new Date(dayStart), bandIdx = 0;
   const bands = [];
@@ -1669,20 +1703,9 @@ function drawCoreDayChart(containerId, date, drawExtra){
     .attr('x1', 0).attr('x2', plotWidth)
     .attr('y1', d => y(d)).attr('y2', d => y(d));
 
-  const guideLine = g.append('line')
-    .attr('y1', 0).attr('y2', plotHeight)
-    .attr('stroke', 'var(--ink)').attr('stroke-width', 1)
-    .attr('stroke-dasharray', '3,3').style('opacity', 0).style('pointer-events', 'none');
-  activeGuideLine = guideLine;
-
   function hoursSinceSunrise(t){
     if(!weather || !weather.sunrise) return null;
     return (t - weather.sunrise) / 3600000;
-  }
-  function showAt(clientX, offsetX, lines){
-    guideLine.attr('x1', offsetX).attr('x2', offsetX).style('opacity', 1);
-    const rect = svg.node().getBoundingClientRect();
-    showTooltip(clientX, rect.top + margin.top, lines);
   }
 
   g.selectAll('.strain').data(dayStraining).enter().append('rect')
@@ -1691,14 +1714,7 @@ function drawCoreDayChart(containerId, date, drawExtra){
     .attr('width', d => Math.max(5, x(d.end) - x(d.start)))
     .attr('y', 0).attr('height', plotHeight)
     .attr('fill', 'var(--strain-soft)')
-    .attr('stroke', 'var(--strain)').attr('stroke-width', 1)
-    .on('click', function(event, d){
-      event.stopPropagation();
-      const mins = Math.round((d.end - d.start)/60000);
-      let line = 'Straining ' + fmtTime(d.start) + '–' + fmtTime(d.end) + ' (' + mins + ' min)';
-      if(d.note) line += '<br><span style="opacity:0.85;">' + escapeHtml(d.note) + '</span>';
-      showAt(event.clientX, x(d.start), [line]);
-    });
+    .attr('stroke', 'var(--strain)').attr('stroke-width', 1);
 
   const barW = Math.max(8, Math.min(18, PX_PER_HOUR/5));
   g.selectAll('.pee').data(dayPee).enter().append('rect')
@@ -1709,29 +1725,17 @@ function drawCoreDayChart(containerId, date, drawExtra){
     .attr('height', d => plotHeight - y(d.rating))
     .attr('rx', 3)
     .attr('fill', 'var(--pee)')
-    .attr('stroke', '#1a3f3d').attr('stroke-width', 0.5)
-    .on('click', function(event, d){
-      event.stopPropagation();
-      let line = 'Pee at ' + fmtTime(d.time) + ratingBarHtml(d.rating, 6);
-      if(d.note) line += '<span style="opacity:0.85;">' + escapeHtml(d.note) + '</span>';
-      showAt(event.clientX, x(d.time), [line]);
-    });
+    .attr('stroke', '#1a3f3d').attr('stroke-width', 0.5);
 
   g.selectAll('.poop').data(dayPoop).enter().append('rect')
     .attr('class','poop')
     .attr('x', d => x(d.time) - barW/2 - barW - 2)
     .attr('width', barW)
-    .attr('y', d => y(d.rating))
-    .attr('height', d => plotHeight - y(d.rating))
+    .attr('y', d => poopY(d.rating))
+    .attr('height', d => plotHeight - poopY(d.rating))
     .attr('rx', 3)
     .attr('fill', '#6b4a2f')
-    .attr('stroke', '#3a2a1c').attr('stroke-width', 0.5)
-    .on('click', function(event, d){
-      event.stopPropagation();
-      let line = 'Poop at ' + fmtTime(d.time) + ratingBarHtml(d.rating, 6);
-      if(d.note) line += '<span style="opacity:0.85;">' + escapeHtml(d.note) + '</span>';
-      showAt(event.clientX, x(d.time), [line]);
-    });
+    .attr('stroke', '#3a2a1c').attr('stroke-width', 0.5);
 
   if(!dayStraining.length && !dayPee.length && !dayPoop.length){
     g.append('text')
@@ -1746,40 +1750,74 @@ function drawCoreDayChart(containerId, date, drawExtra){
   g.append('g').attr('class','axis')
     .call(d3.axisLeft(y).ticks(6).tickFormat(d3.format('d')));
 
-  // Tap the background (not a mark) to inspect that point in time, same info
-  // a scrub used to show — a tap doesn't fight native horizontal scrolling
-  // the way a drag-based overlay would, so no custom gesture code is needed.
-  const overlay = g.insert('rect', ':first-child')
-    .attr('x', 0).attr('y', -24).attr('width', plotWidth).attr('height', plotHeight + 24)
-    .attr('fill', 'transparent');
-  overlay.on('click', function(event){
-    event.stopPropagation();
-    const [offsetX] = d3.pointer(event, g.node());
-    const t = x.invert(Math.max(0, Math.min(plotWidth, offsetX)));
-    let lines = [fmtTime(t)];
-    const extraLines = extraTooltipFn ? extraTooltipFn(t, offsetX) : null;
-    if(extraLines) lines.push(...extraLines);
-    const hrs = hoursSinceSunrise(t);
-    if(hrs !== null) lines.push(hrs >= 0 ? hrs.toFixed(1) + 'h after sunrise' : Math.abs(hrs).toFixed(1) + 'h before sunrise');
-    showAt(event.clientX, offsetX, lines);
-  });
+  // Fixed center marker (pure CSS, see .day-marker-line) never moves — as you
+  // scroll, whatever it's over is "active" and its details are shown
+  // automatically below, no tap needed. Padding equal to half the viewport
+  // is added on both sides of the content so even the very first/last
+  // moment of the day can be scrolled to the center.
+  const hitRadius = barW/2 + 4;
+  function updateMarkerInfo(){
+    const containerWidth = scrollWrap.clientWidth;
+    const plotX = Math.max(0, Math.min(plotWidth, scrollWrap.scrollLeft - margin.left));
+    const t = x.invert(plotX);
 
-  // Auto-scroll to something relevant: "now" if viewing today, otherwise the
-  // first logged event, otherwise a reasonable default (6am).
+    const overlaps = [];
+    const containingStrain = dayStraining.find(s => t >= s.start && t <= s.end);
+    if(containingStrain){
+      const mins = Math.round((containingStrain.end - containingStrain.start)/60000);
+      let line = '🚽 Straining ' + fmtTime(containingStrain.start) + '–' + fmtTime(containingStrain.end) + ' (' + mins + ' min)';
+      if(containingStrain.note) line += ' — ' + escapeHtml(containingStrain.note);
+      overlaps.push(line);
+    }
+    dayPee.forEach(p => {
+      if(Math.abs(x(p.time) - plotX) <= hitRadius){
+        let line = '💧 Pee at ' + fmtTime(p.time) + ' · size ' + p.rating + '/6';
+        if(p.note) line += ' — ' + escapeHtml(p.note);
+        overlaps.push(line);
+      }
+    });
+    dayPoop.forEach(p => {
+      if(Math.abs(x(p.time) - plotX) <= hitRadius){
+        let line = '💩 Poop at ' + fmtTime(p.time) + ' · ' + poopAmountLabel(p.rating);
+        if(p.note) line += ' — ' + escapeHtml(p.note);
+        overlaps.push(line);
+      }
+    });
+    const extraLines = extraTooltipFn ? extraTooltipFn(t, plotX) : null;
+    if(extraLines) extraLines.forEach(l => overlaps.push(l));
+
+    let html = '<span class="marker-time">' + fmtTime(t) + '</span>';
+    const hrs = hoursSinceSunrise(t);
+    if(hrs !== null){
+      html += ' <span style="opacity:0.6;">(' + (hrs >= 0 ? hrs.toFixed(1) + 'h after sunrise' : Math.abs(hrs).toFixed(1) + 'h before sunrise') + ')</span>';
+    }
+    if(overlaps.length) html += '<br>' + overlaps.join('<br>');
+    document.getElementById('dayMarkerInfo').innerHTML = html;
+  }
+  scrollWrap.addEventListener('scroll', updateMarkerInfo);
+
+  // Auto-position: "now" if viewing today, otherwise the first logged event,
+  // otherwise a reasonable default (6am) — centered under the fixed marker.
   requestAnimationFrame(() => {
     const containerWidth = scrollWrap.clientWidth;
-    let scrollTarget;
+    const halfPad = containerWidth / 2;
+    area.style.paddingLeft = halfPad + 'px';
+    area.style.paddingRight = halfPad + 'px';
+
+    let targetPlotX;
     const todayKey = dateKeyFromDate(new Date());
     if(date === todayKey){
-      scrollTarget = x(new Date()) + margin.left - containerWidth/2;
+      targetPlotX = x(new Date());
     } else {
       const firstEvent = [...dayStraining.map(s=>s.start), ...dayPee.map(p=>p.time), ...dayPoop.map(p=>p.time)]
         .sort((a,b)=>a-b)[0];
-      scrollTarget = firstEvent ? x(firstEvent) + margin.left - 60 : x(new Date(dayStart.getTime()+6*3600000)) + margin.left - 60;
+      targetPlotX = firstEvent ? x(firstEvent) : x(new Date(dayStart.getTime()+6*3600000));
     }
-    scrollWrap.scrollLeft = Math.max(0, scrollTarget);
+    scrollWrap.scrollLeft = Math.max(0, targetPlotX + margin.left);
+    updateMarkerInfo();
   });
 }
+
 
 // ---- Week & Month views: 3 charts each (straining time, pee count, pee total),
 // styled and gestured the same way as Day view. ----
@@ -1919,6 +1957,7 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn, labelsOnly){
 
   function onDown(e){
     if(e.target.closest('.chart-canvas')) return;
+    if(e.target.closest('#addEventBackdrop')) return; // modal is open — nothing behind it should react
     startX = e.clientX; startY = e.clientY; tracking = true;
   }
   function onUp(e){
