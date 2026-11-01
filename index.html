@@ -68,10 +68,10 @@
     --pee:#4db6ae;
     --accent:#3f8a80;
     --error:#e8785d;
-    --band-a:#1c2220;
-    --band-b:#161b19;
-    --week-band-a:#222926;
-    --week-band-b:#191e1c;
+    --band-a:#27302d;
+    --band-b:#171c1a;
+    --week-band-a:#27302d;
+    --week-band-b:#171c1a;
     --on-ink:#0d1110;
     --poop:#c08f62; --poop-edge:#e0b88f;
     --stress:#c88ad8;
@@ -148,8 +148,10 @@
     background:var(--paper);
     padding-top:22px; padding-bottom:2px;
   }
-  header{position:relative;margin-bottom:12px;padding-bottom:2px;}
-  header h1{text-align:center;font-size:1.3rem;margin:0;font-weight:700;letter-spacing:-0.01em;}
+  header{position:relative;margin-bottom:14px;padding-bottom:2px;}
+  header h1{text-align:center;font-size:clamp(1.3rem,7.4vw,1.75rem);line-height:1.12;margin:12px 0 0;font-weight:700;letter-spacing:-0.015em;text-wrap:balance;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;font-family:var(--title-font, inherit);}
+  .holiday-greeting{text-align:center;font-size:0.8rem;color:var(--accent);font-weight:600;margin-top:2px;min-height:0;}
+  .holiday-greeting:empty{display:none;}
   header .sub{color:var(--ink-soft);font-size:0.85rem;}
 
   /* Period-change animation */
@@ -169,16 +171,17 @@
   .spinner{width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;margin:0 auto 14px;animation:spin 0.8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
 
-  .cat-tabs{position:relative;display:grid;grid-template-columns:repeat(4,1fr);justify-items:center;margin:2px 0 16px;}
-  .cat-btn{width:64px;height:64px;border-radius:50%;border:2px solid var(--line);padding:0;background:var(--card);overflow:hidden;
-    color:var(--ink);font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;
-    opacity:.6;transform:scale(.86);transition:transform .45s cubic-bezier(.34,1.56,.64,1),opacity .3s ease;-webkit-tap-highlight-color:transparent;}
-  .cat-btn.active{opacity:1;transform:scale(1);}
-  .cat-btn:active{transform:scale(.92);}
+  .cat-tabs{position:relative;display:grid;grid-template-columns:repeat(4,1fr);margin:0 0 10px;}
+  .cat-cell{position:relative;height:84px;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+  .cat-btn{width:64px;height:64px;border-radius:50%;border:2px solid var(--line);padding:0;background:var(--card);overflow:hidden;pointer-events:none;
+    color:var(--ink);font-weight:700;display:flex;align-items:center;justify-content:center;
+    opacity:.6;transform:scale(.86);transition:transform .38s cubic-bezier(.3,1.3,.5,1),opacity .25s ease;}
+  .cat-cell.active .cat-btn{opacity:1;transform:scale(1);}
+  .cat-cell:active .cat-btn{transform:scale(.92);}
   .cat-btn img{width:100%;height:100%;object-fit:cover;display:block;}
-  .cat-ring{position:absolute;top:-4px;left:0;width:72px;height:72px;border-radius:50%;border:3px solid var(--accent);pointer-events:none;
-    transition:transform .5s cubic-bezier(.34,1.4,.5,1);will-change:transform;}
-  .cat-ring.no-anim{transition:none;}
+  .cat-ring{position:absolute;top:6px;left:0;width:72px;height:72px;border-radius:36px;border:3px solid var(--accent);pointer-events:none;will-change:left,width,transform;}
+  .cat-cell.active::after{content:var(--badge, '');position:absolute;top:2px;left:calc(50% + 12px);font-size:22px;line-height:1;animation:badgePop .5s cubic-bezier(.3,1.5,.5,1);}
+  @keyframes badgePop{from{transform:scale(0) rotate(-30deg);}to{transform:scale(1) rotate(0);}}
   @keyframes catSwap{from{opacity:0;transform:translateY(8px) scale(.985);}to{opacity:1;transform:none;}}
   #periodContent.cat-swap{animation:catSwap .38s cubic-bezier(0.22,0.61,0.36,1);}
   .view-switch{position:relative;display:flex;margin:0 auto 12px;max-width:260px;background:var(--line);border-radius:999px;padding:3px;}
@@ -187,12 +190,15 @@
   .view-switch button{position:relative;flex:1;padding:8px 0;border:none;background:transparent;color:var(--ink-soft);font-size:0.85rem;font-weight:700;cursor:pointer;border-radius:999px;transition:color .2s;}
   .view-switch button.active{color:var(--on-ink);}
   .view-tabs{display:none;}
-  :root[data-theme="dark"] .list-day-header td{background:#222927;color:var(--ink);}
+  :root[data-theme="dark"] .list-day-header td{background:#2f423c;color:#f1f6f3;box-shadow:inset 4px 0 0 var(--accent);}
   .list-table td,.list-table th{padding-left:5px;padding-right:5px;}
   .list-table td:last-child{word-break:break-word;}
-  .last-seen{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px;}
-  .last-seen span{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:0.76rem;color:var(--ink-soft);}
+  .last-seen{container-type:inline-size;display:flex;flex-wrap:nowrap;gap:6px;margin:0 0 12px;}
+  .last-seen span{flex:1 1 0;min-width:0;text-align:center;white-space:nowrap;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 4px;font-size:clamp(0.56rem,3.2cqw,0.76rem);color:var(--ink-soft);}
   .last-seen b{color:var(--ink);font-weight:700;}
+  .fx{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:2;}
+  .fx span{position:absolute;top:-30px;opacity:0.4;animation:fxFall linear infinite;will-change:transform;}
+  @keyframes fxFall{0%{transform:translate3d(0,-30px,0) rotate(0);}100%{transform:translate3d(var(--dx,20px),calc(100vh + 40px),0) rotate(var(--rot,360deg));}}
   .toast{position:fixed;left:50%;bottom:max(96px,calc(env(safe-area-inset-bottom) + 90px));transform:translate(-50%,20px);opacity:0;pointer-events:none;
     background:var(--ink);color:var(--on-ink);padding:10px 18px;border-radius:999px;font-size:0.88rem;font-weight:600;z-index:95;transition:opacity .25s,transform .35s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;}
   .toast.show{opacity:1;transform:translate(-50%,0);}
@@ -200,6 +206,10 @@
   .day-nav button:active,.entry-type-btn:active,.size-row button:active,.quick-row button:active,.today-btn:active,.list-sort-toggle:active,.view-switch button:active{transform:scale(.95);}
   .list-table,.stat,.last-seen{font-variant-numeric:tabular-nums;}
   @media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+  .about-card{background:var(--card);border-radius:16px;padding:20px 22px;max-width:340px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3);}
+  .about-line{color:var(--ink-soft);font-size:0.9rem;text-align:center;margin-bottom:3px;}
+  .about-label{font-size:0.7rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--ink-soft);margin:12px 0 5px;}
+  .about-select{width:100%;font-size:16px;padding:9px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);}
   .theme-seg{display:flex;background:var(--line);border-radius:999px;padding:3px;margin-bottom:14px;}
   .theme-seg button{flex:1;border:none;background:transparent;color:var(--ink-soft);padding:7px 0;border-radius:999px;font-size:0.82rem;font-weight:600;cursor:pointer;}
   .theme-seg button.active{background:var(--ink);color:var(--on-ink);}
@@ -247,10 +257,23 @@
   .list-table th{text-align:left;padding:6px 8px;color:var(--ink-soft);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.03em;border-bottom:2px solid var(--ink);}
   .list-table td{padding:7px 8px;border-bottom:1px solid var(--line);}
   .list-table tr:nth-child(even){background:var(--band-a);}
-  .list-controls{display:flex;gap:6px;align-items:center;margin:-14px -10px 8px;padding:12px 10px 8px;
+  .list-controls{display:flex;gap:8px;align-items:center;margin:-14px -10px 0;padding:12px 10px 8px;
+    position:sticky;top:var(--stickyH, 120px);z-index:6;background:var(--card);border-radius:10px 10px 0 0;border-bottom:1px solid var(--line);}
+  .list-range{flex:1;min-width:0;font-size:16px;font-weight:700;padding:7px 6px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);}
+  .list-custom{display:flex;gap:6px;align-items:center;padding:10px 0 4px;font-size:0.8rem;color:var(--ink-soft);}
+  .list-custom input{flex:1;min-width:0;font-size:16px;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);}
+  .list-table{table-layout:fixed;}
+  .list-table th,.list-table td{text-align:center;}
+  .list-table th:last-child,.list-table td:last-child{text-align:left;}
+  .list-table th:nth-child(1){width:19%;} .list-table th:nth-child(2){width:31%;} .list-table th:nth-child(3){width:19%;}
+  .list-table td:nth-child(-n+3){white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .list-card .list-table{font-size:0.78rem;}
+  .list-card .list-table thead th{position:sticky;top:calc(var(--stickyH, 120px) + var(--ctlH, 52px));z-index:5;background:var(--card);box-shadow:0 2px 0 var(--ink);border-bottom:none;}
+  .list-card .list-day-header td{position:sticky;top:calc(var(--stickyH, 120px) + var(--ctlH, 52px) + var(--theadH, 30px));z-index:4;}
+  .list-controls-old{display:flex;gap:6px;align-items:center;margin:-14px -10px 8px;padding:12px 10px 8px;
     position:sticky;top:var(--stickyH, 120px);z-index:6;background:var(--card);border-radius:10px 10px 0 0;border-bottom:1px solid var(--line);}
   .list-controls .sel-unused{flex:1;min-width:100px;padding:7px 8px;border:1px solid var(--line);border-radius:7px;background:var(--card);font-size:0.78rem;color:var(--ink);}
-  .list-sort-toggle{flex:1;min-width:100px;padding:7px 8px;border:1px solid var(--accent);border-radius:7px;background:var(--card);color:var(--accent);font-size:0.78rem;font-weight:600;cursor:pointer;}
+  .list-sort-toggle{flex:0 0 auto;min-width:0;white-space:nowrap;padding:7px 8px;border:1px solid var(--accent);border-radius:7px;background:var(--card);color:var(--accent);font-size:0.78rem;font-weight:600;cursor:pointer;}
   .list-day-header td{background:var(--ink);color:var(--on-ink);font-weight:700;font-size:0.78rem;padding:8px;border-bottom:none;}
 
   .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;padding:0 6px;font-size:0.76rem;color:var(--ink-soft);}
@@ -264,7 +287,7 @@
     bottom:max(20px, calc(env(safe-area-inset-bottom) + 14px));
     width:60px; height:60px;
     border-radius:50%;
-    background:var(--strain);
+    background:var(--fab, var(--strain));
     color:#fff;
     font-size:2.1rem;
     font-weight:300;
@@ -319,7 +342,8 @@
     <div class="wrap">
       <div class="sticky-top" id="stickyTop">
         <header>
-          <h1 id="appTitle" onclick="showAbout()" style="cursor:pointer;">Cat Bathroom Tracker</h1>
+          <h1 id="appTitle">Cat Bathroom Tracker</h1>
+          <div id="holidayGreeting" class="holiday-greeting"></div>
         </header>
 
         <div id="catTabs" class="cat-tabs" style="display:none;"></div>
@@ -360,22 +384,37 @@
   </div>
 </div>
 
+<div id="fx" class="fx" aria-hidden="true"></div>
 <div id="toast" class="toast"></div>
 <div id="updateBanner" style="display:none;position:fixed;z-index:85;left:50%;transform:translateX(-50%);top:max(10px,env(safe-area-inset-top));align-items:center;gap:10px;background:var(--ink);color:var(--on-ink);padding:8px 8px 8px 16px;border-radius:999px;font-size:0.85rem;box-shadow:0 6px 20px rgba(0,0,0,0.3);white-space:nowrap;">
   New version available
   <button onclick="reloadLatest()" style="border:none;border-radius:999px;padding:7px 14px;background:var(--on-ink);color:var(--ink);font-weight:700;font-size:0.85rem;cursor:pointer;">Reload</button>
 </div>
-<div id="aboutBackdrop" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(20,24,30,0.5);align-items:center;justify-content:center;padding:24px;" onclick="if(event.target===this) hideAbout();">
-  <div style="background:var(--card);border-radius:16px;padding:22px 24px;max-width:320px;width:100%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
-    <div style="font-weight:700;margin-bottom:6px;">Cat Bathroom Tracker</div>
-    <div id="aboutStamp" style="color:var(--ink-soft);font-size:0.95rem;margin-bottom:6px;"></div>
-    <div id="aboutRemote" style="color:var(--ink-soft);font-size:0.8rem;margin-bottom:16px;"></div>
+<div id="aboutBackdrop" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(20,24,30,0.5);align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this) hideAbout();">
+  <div class="about-card">
+    <div style="font-weight:700;margin-bottom:8px;text-align:center;">Cat Bathroom Tracker</div>
+    <div id="aboutStamp" class="about-line"></div>
+    <div id="aboutScript" class="about-line"></div>
+    <div id="aboutRemote" class="about-line" style="margin-bottom:6px;"></div>
+
+    <div class="about-label">Theme</div>
     <div id="themeSeg" class="theme-seg">
       <button data-pref="auto" onclick="setThemePref('auto')">Auto</button>
       <button data-pref="light" onclick="setThemePref('light')">Light</button>
       <button data-pref="dark" onclick="setThemePref('dark')">Dark</button>
     </div>
-    <div style="display:flex;gap:8px;">
+    <div class="about-label">Clock</div>
+    <div id="clockSeg" class="theme-seg">
+      <button data-pref="auto" onclick="setClockPref('auto')">System</button>
+      <button data-pref="12" onclick="setClockPref('12')">12-hour</button>
+      <button data-pref="24" onclick="setClockPref('24')">24-hour</button>
+    </div>
+    <div class="about-label">Holiday theme</div>
+    <select id="holidaySel" class="about-select" onchange="setHolidayPref(this.value)"></select>
+    <div class="about-label">Title font</div>
+    <select id="fontSel" class="about-select" onchange="setTitleFont(this.value)"></select>
+
+    <div style="display:flex;gap:8px;margin-top:16px;">
       <button onclick="hideAbout()" style="flex:1;padding:12px;border-radius:8px;border:1px solid var(--line);background:var(--card);font-size:16px;color:var(--ink);">Close</button>
       <button onclick="reloadLatest()" style="flex:1;padding:12px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:16px;font-weight:600;">Reload</button>
     </div>
@@ -489,7 +528,115 @@ let allStraining = [], allPee = [], allPoop = [], allStressEvents = [];
 // belonging to the first cat, for backward compatibility.
 // Stamped each time the file is regenerated, so the popup tells you which
 // version your device is actually running.
-const BUILD_STAMP = '2026-11-01T17:35:13-05:00';
+const BUILD_STAMP = '2026-11-01T17:56:48-05:00';
+// ===== Holidays =====
+const HOLIDAYS = {
+  newyear:     {name:"New Year's",     greet:'🎉 Happy New Year!',         badge:'🎉', fx:['🎊','✨','🎉'], light:'#a8841f', dark:'#b8952b'},
+  valentine:   {name:"Valentine's Day",greet:'💝 Happy Valentine\'s Day!', badge:'💝', fx:['💗','💕','❤️'], light:'#c2345f', dark:'#c2345f'},
+  stpatrick:   {name:"St. Patrick's",  greet:'🍀 Happy St. Patrick\'s Day!',badge:'🍀', fx:['☘️','🍀'],       light:'#2f8f4e', dark:'#2f8f4e'},
+  easter:      {name:'Easter',         greet:'🐣 Happy Easter!',           badge:'🐣', fx:['🌷','🥚','🐣'], light:'#7f5bc0', dark:'#7f5bc0'},
+  july4:       {name:'Fourth of July', greet:'🎆 Happy 4th of July!',      badge:'🎆', fx:['✨','🎆','⭐'], light:'#2b5fb5', dark:'#3a6fc4'},
+  halloween:   {name:'Halloween',      greet:'🎃 Happy Halloween!',        badge:'🎃', fx:['🦇','🎃','👻'], light:'#c8651b', dark:'#c8651b'},
+  thanksgiving:{name:'Thanksgiving',   greet:'🦃 Happy Thanksgiving!',     badge:'🦃', fx:['🍂','🍁','🍂'], light:'#a8602a', dark:'#b46c33'},
+  christmas:   {name:'Christmas',      greet:'🎄 Merry Christmas!',        badge:'🎅', fx:['❄️','❄️','✨'], light:'#b3342d', dark:'#b3342d'}
+};
+function easterDate(y){
+  const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),
+        h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),
+        mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1;
+  return new Date(y, mo-1, da);
+}
+function currentHoliday(now){
+  now = now || new Date();
+  const y = now.getFullYear(), day0 = new Date(y, now.getMonth(), now.getDate());
+  const within = (start, end) => day0 >= start && day0 <= end;
+  const md = (m,d) => new Date(y, m-1, d);
+  const easter = easterDate(y);
+  const nov1 = md(11,1); const thu = (4 - nov1.getDay() + 7) % 7; const thanks = md(11, 1 + thu + 21);
+  if(within(md(12,27), md(12,31)) || within(md(1,1), md(1,2))) return 'newyear';
+  if(within(md(12,1), md(12,26))) return 'christmas';
+  if(within(md(2,7), md(2,14))) return 'valentine';
+  if(within(md(3,10), md(3,17))) return 'stpatrick';
+  if(within(new Date(easter.getTime()-6*86400000), easter)) return 'easter';
+  if(within(md(6,29), md(7,5))) return 'july4';
+  if(within(md(10,15), md(11,1))) return 'halloween';
+  if(within(new Date(thanks.getTime()-7*86400000), thanks)) return 'thanksgiving';
+  return null;
+}
+let holidayPref = 'auto';
+try{ holidayPref = localStorage.getItem('holidayPref') || 'auto'; }catch(e){}
+function setHolidayPref(v){ holidayPref = v; try{ localStorage.setItem('holidayPref', v); }catch(e){} applyHoliday(); }
+function applyHoliday(){
+  const key = holidayPref === 'off' ? null : (holidayPref === 'auto' ? currentHoliday() : holidayPref);
+  const h = key && HOLIDAYS[key];
+  const root = document.documentElement;
+  if(h){
+    root.dataset.holiday = key;
+    root.style.setProperty('--accent', isDark() ? h.dark : h.light);
+    root.style.setProperty('--fab', isDark() ? h.dark : h.light);
+    root.style.setProperty('--badge', '"' + h.badge + '"');
+  } else {
+    delete root.dataset.holiday;
+    ['--accent','--fab','--badge'].forEach(v => root.style.removeProperty(v));
+  }
+  document.getElementById('holidayGreeting').textContent = h ? h.greet : '';
+  buildFx(h);
+}
+function buildFx(h){
+  const fx = document.getElementById('fx');
+  fx.innerHTML = '';
+  if(!h || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const n = 14;
+  for(let i = 0; i < n; i++){
+    const sp = document.createElement('span');
+    sp.textContent = h.fx[i % h.fx.length];
+    const dur = 11 + Math.random() * 10;
+    sp.style.left = (Math.random() * 100) + '%';
+    sp.style.fontSize = (13 + Math.random() * 9) + 'px';
+    sp.style.animationDuration = dur + 's';
+    sp.style.animationDelay = (-Math.random() * dur) + 's';
+    sp.style.setProperty('--dx', (Math.random() * 60 - 30) + 'px');
+    sp.style.setProperty('--rot', (Math.random() * 540 - 270) + 'deg');
+    fx.appendChild(sp);
+  }
+}
+
+// ===== Title font =====
+const TITLE_FONTS = {
+  system:   {label:'System (default)', css:'inherit', weight:700},
+  rounded:  {label:'System rounded',  css:'ui-rounded,"SF Pro Rounded",system-ui,sans-serif', weight:800},
+  serif:    {label:'System serif',    css:'ui-serif,"New York",Georgia,serif', weight:700},
+  mono:     {label:'System mono',     css:'ui-monospace,"SF Mono",Menlo,monospace', weight:700},
+  nunito:   {label:'Nunito',          css:'"Nunito",sans-serif', weight:800, g:'Nunito:wght@800'},
+  fredoka:  {label:'Fredoka',         css:'"Fredoka",sans-serif', weight:600, g:'Fredoka:wght@600'},
+  baloo:    {label:'Baloo 2',         css:'"Baloo 2",sans-serif', weight:700, g:'Baloo+2:wght@700'},
+  quicksand:{label:'Quicksand',       css:'"Quicksand",sans-serif', weight:700, g:'Quicksand:wght@700'},
+  fraunces: {label:'Fraunces',        css:'"Fraunces",serif', weight:700, g:'Fraunces:wght@700'},
+  playfair: {label:'Playfair Display',css:'"Playfair Display",serif', weight:700, g:'Playfair+Display:wght@700'},
+  pacifico: {label:'Pacifico',        css:'"Pacifico",cursive', weight:400, g:'Pacifico'},
+  caveat:   {label:'Caveat',          css:'"Caveat",cursive', weight:700, g:'Caveat:wght@700'}
+};
+let titleFontKey = 'system';
+try{ const k = localStorage.getItem('titleFont'); if(k && TITLE_FONTS[k]) titleFontKey = k; }catch(e){}
+function setTitleFont(k){
+  if(!TITLE_FONTS[k]) k = 'system';
+  titleFontKey = k; try{ localStorage.setItem('titleFont', k); }catch(e){}
+  applyTitleFont();
+}
+function applyTitleFont(){
+  const f = TITLE_FONTS[titleFontKey];
+  if(f.g && !document.getElementById('gf_' + titleFontKey)){
+    const l = document.createElement('link');
+    l.id = 'gf_' + titleFontKey; l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=' + f.g + '&display=swap';
+    document.head.appendChild(l);
+  }
+  const root = document.documentElement;
+  root.style.setProperty('--title-font', f.css);
+  const h1 = document.getElementById('appTitle');
+  h1.style.fontWeight = f.weight;
+}
+
 function applyTheme(){
   let pref = 'auto';
   try{ pref = localStorage.getItem('themePref') || 'auto'; }catch(e){}
@@ -498,6 +645,7 @@ function applyTheme(){
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
   document.querySelector('meta[name="theme-color"]').content = dark ? '#0d1110' : '#eef1ee';
   document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('active', b.dataset.pref === pref));
+  if(typeof applyHoliday === 'function' && document.getElementById('holidayGreeting') && was !== document.documentElement.dataset.theme) applyHoliday();
   if(was !== document.documentElement.dataset.theme && typeof dateList !== 'undefined' && dateList.length) renderCurrentView(true);
 }
 function setThemePref(pref){ try{ localStorage.setItem('themePref', pref); }catch(e){} applyTheme(); }
@@ -510,28 +658,47 @@ function showToast(msg){
   clearTimeout(_toastT); _toastT = setTimeout(() => t.classList.remove('show'), 2200);
 }
 function agoText(ms){
-  const m = Math.floor(ms / 60000);
-  if(m < 1) return 'just now';
+  const m = Math.max(0, Math.floor(ms / 60000));
   if(m < 60) return m + 'm ago';
   const h = Math.floor(m / 60);
-  if(h < 24) return h + 'h ' + (m % 60) + 'm ago';
+  if(h < 24) return h + 'h ago';
   return Math.floor(h / 24) + 'd ago';
 }
 function updateLastSeen(){
   const el = document.getElementById('lastSeen');
   if(!el) return;
   const now = Date.now();
-  const latest = arr => arr.length ? Math.max.apply(null, arr.map(x => (x.time || x.start).getTime())) : null;
-  const items = [['Pee', latest(pee)], ['Strain', latest(straining)], ['Poop', latest(poop)]];
-  el.innerHTML = items.filter(i => i[1] && i[1] <= now + 60000)
-    .map(i => '<span>Last ' + i[0] + ' <b>' + agoText(now - i[1]) + '</b></span>').join('');
+  const latest = arr => { const t = arr.map(x => (x.time || x.start).getTime()).filter(t => t <= now + 60000); return t.length ? Math.max.apply(null, t) : null; };
+  el.innerHTML = [['pee', pee], ['strain', straining], ['poop', poop]].map(i => {
+    const t = latest(i[1]);
+    return '<span>Last ' + i[0] + ' <b>' + (t ? agoText(now - t) : '—') + '</b></span>';
+  }).join('');
 }
 setInterval(updateLastSeen, 60000);
 
+let scriptVersion = null;
+function fmtStamp(iso){
+  const d = new Date(iso);
+  return isNaN(d) ? String(iso) : d.toLocaleString('en-US', {month:'numeric', day:'numeric', hour:'numeric', minute:'2-digit', hourCycle: clockPref === '24' ? 'h23' : clockPref === '12' ? 'h12' : undefined}).replace(/\u202f/g,' ');
+}
+function syncSettingsUI(){
+  document.querySelectorAll('#clockSeg button').forEach(b => b.classList.toggle('active', b.dataset.pref === clockPref));
+  const hs = document.getElementById('holidaySel'), fs = document.getElementById('fontSel');
+  if(hs && !hs.options.length){
+    hs.innerHTML = '<option value="auto">Automatic (by date)</option><option value="off">Off</option>' +
+      Object.keys(HOLIDAYS).map(k => '<option value="' + k + '">Preview: ' + HOLIDAYS[k].name + '</option>').join('');
+  }
+  if(fs && !fs.options.length){
+    fs.innerHTML = Object.keys(TITLE_FONTS).map(k => '<option value="' + k + '">' + TITLE_FONTS[k].label + '</option>').join('');
+  }
+  if(hs) hs.value = holidayPref;
+  if(fs) fs.value = titleFontKey;
+  applyTheme();
+}
 function showAbout(){
-  const d = new Date(BUILD_STAMP);
-  document.getElementById('aboutStamp').textContent = 'Last updated: ' +
-    d.toLocaleString('en-US', {month:'numeric', day:'numeric', hour:'numeric', minute:'2-digit'}).replace(', ', ', ').replace(/\u202f/g,' ');
+  syncSettingsUI();
+  document.getElementById('aboutStamp').textContent = 'App updated: ' + fmtStamp(BUILD_STAMP);
+  document.getElementById('aboutScript').textContent = 'Apps Script: ' + (scriptVersion ? fmtStamp(scriptVersion) : 'not reported yet (paste in the newest script & redeploy)');
   document.getElementById('aboutRemote').textContent = 'Checking for updates…';
   checkForUpdate().then(() => {
     document.getElementById('aboutRemote').textContent = remoteStamp
@@ -540,6 +707,19 @@ function showAbout(){
   });
   document.getElementById('aboutBackdrop').style.display = 'flex';
 }
+// Long-press the title (about half a second) to open version info & settings.
+(function(){
+  const t = document.getElementById('appTitle');
+  let timer = null, sx = 0, sy = 0;
+  const cancel = () => { clearTimeout(timer); timer = null; };
+  t.addEventListener('pointerdown', e => {
+    sx = e.clientX; sy = e.clientY; cancel();
+    timer = setTimeout(() => { timer = null; if(navigator.vibrate) navigator.vibrate(15); showAbout(); }, 550);
+  });
+  t.addEventListener('pointermove', e => { if(timer && (Math.abs(e.clientX - sx) > 8 || Math.abs(e.clientY - sy) > 8)) cancel(); });
+  ['pointerup','pointercancel','pointerleave'].forEach(ev => t.addEventListener(ev, cancel));
+  t.addEventListener('contextmenu', e => e.preventDefault());
+})();
 function hideAbout(){ document.getElementById('aboutBackdrop').style.display = 'none'; }
 function reloadLatest(){ location.href = location.pathname + '?v=' + Date.now(); }
 
@@ -629,27 +809,44 @@ function catLabelSize(name){ return name.length <= 4 ? '1rem' : name.length <= 6
 function renderCatTabs(){
   const el = document.getElementById('catTabs');
   if(!el.querySelector('.cat-ring')){
-    el.innerHTML = '<div class="cat-ring no-anim"></div>' + CATS.map((c,i) =>
-      '<button class="cat-btn" data-cat="' + escapeHtml(c) + '" aria-label="' + escapeHtml(c) + '" title="' + escapeHtml(c) + '" onclick="switchCat(' + i + ')"></button>').join('');
+    el.innerHTML = '<div class="cat-ring"></div>' + CATS.map((c,i) =>
+      '<div class="cat-cell" data-cat="' + escapeHtml(c) + '" role="button" aria-label="' + escapeHtml(c) + '" title="' + escapeHtml(c) + '" onclick="switchCat(' + i + ')"><div class="cat-btn"></div></div>').join('');
+    ringLeft = null;
   }
-  el.querySelectorAll('.cat-btn').forEach((btn,i) => {
-    const c = CATS[i], photo = catPhotos[c] || '';
+  el.querySelectorAll('.cat-cell').forEach((cell,i) => {
+    const btn = cell.firstChild, c = CATS[i], photo = catPhotos[c] || '';
     if(btn.dataset.photo !== photo){
       btn.dataset.photo = photo;
       btn.innerHTML = photo ? '<img src="' + photo + '" alt="">' :
         '<span style="font-size:' + catLabelSize(c) + ';">' + escapeHtml(c) + '</span>';
     }
-    btn.classList.toggle('active', c === currentCat);
+    cell.classList.toggle('active', c === currentCat);
   });
   positionCatRing(false);
 }
 
+let ringLeft = null;
+// The ring "stretches" toward the new cat (leading edge moves first), then the
+// trailing edge catches up and it settles — no overshoot, a little squash.
 function positionCatRing(animate){
   const el = document.getElementById('catTabs');
-  const ring = el.querySelector('.cat-ring'), btn = el.querySelector('.cat-btn.active');
-  if(!ring || !btn || !btn.offsetWidth) return;
-  ring.classList.toggle('no-anim', !animate);
-  ring.style.transform = 'translateX(' + (btn.offsetLeft + btn.offsetWidth/2 - ring.offsetWidth/2) + 'px)';
+  const ring = el.querySelector('.cat-ring'), cell = el.querySelector('.cat-cell.active');
+  if(!ring || !cell || !cell.offsetWidth) return;
+  const size = 72;
+  const er = el.getBoundingClientRect(), cr = cell.getBoundingClientRect();
+  const target = cr.left - er.left + cr.width/2 - size/2;
+  ring.getAnimations().forEach(a => a.cancel());
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!animate || ringLeft === null || reduced || Math.abs(target - ringLeft) < 1){
+    ring.style.left = target + 'px'; ring.style.width = size + 'px'; ringLeft = target; return;
+  }
+  const from = ringLeft, lo = Math.min(from, target), span = Math.abs(target - from) + size;
+  ring.animate([
+    {left: from + 'px',   width: size + 'px', transform: 'scaleY(1)'},
+    {left: lo + 'px',     width: span + 'px', transform: 'scaleY(0.86)', offset: 0.5, easing: 'cubic-bezier(.25,.1,.25,1)'},
+    {left: target + 'px', width: size + 'px', transform: 'scaleY(1)'}
+  ], {duration: 480, easing: 'cubic-bezier(.4,0,.2,1)'});
+  ring.style.left = target + 'px'; ring.style.width = size + 'px'; ringLeft = target;
 }
 window.addEventListener('resize', () => positionCatRing(false));
 (function(){
@@ -665,7 +862,7 @@ function switchCat(i){
   try{ localStorage.setItem('lastCat', cat); }catch(e){}
   if(navigator.vibrate) navigator.vibrate(8);
   applyCatFilter();
-  document.querySelectorAll('#catTabs .cat-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+  document.querySelectorAll('#catTabs .cat-cell').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
   positionCatRing(true);
   renderCurrentView(true);
   const pc = document.getElementById('periodContent');
@@ -1021,6 +1218,7 @@ function loadData(silent, attempt){
       });
       applyCatFilter();
       updateLastSeen();
+      if(data.scriptVersion) scriptVersion = data.scriptVersion;
       if(data.logo){
         updateIconsAndManifest(data.logo);
       } else if(data.logoDebug){
@@ -1136,6 +1334,7 @@ function loadPhotos(){
     done();
     if(!data || data.error){ el.textContent = 'Photos: ' + (data && data.error || 'error'); return; }
     catPhotos = data.catPhotos || {};
+    if(data.scriptVersion) scriptVersion = data.scriptVersion;
     console.log('Photo diagnostics:', data.photoDebug);
     if(data.logo) updateIconsAndManifest(data.logo);
     renderCatTabs();
@@ -1185,7 +1384,14 @@ function onDateSelect(){
 
 let navDirection = 1;
 
+const viewScroll = {list: 0, day: 0};
+function scrollerEl(){
+  const f = document.getElementById('deviceFrame');
+  return (f && f.classList.contains('mobile')) ? f : (document.scrollingElement || document.documentElement);
+}
 function setView(view){
+  const prev = currentView;
+  if(prev !== view){ viewScroll[prev] = scrollerEl().scrollTop; }
   currentView = view;
   document.getElementById('viewSwitch').dataset.view = view;
   ['tabDay','tabList'].forEach(id => {
@@ -1195,6 +1401,11 @@ function setView(view){
   document.getElementById('periodLabel').style.display = view === 'day' ? 'none' : '';
   document.getElementById('dayNav').style.display = view === 'list' ? 'none' : 'flex';
   renderCurrentView();
+  if(prev !== view){
+    const y = viewScroll[view] || 0;
+    scrollerEl().scrollTop = y;
+    requestAnimationFrame(() => { scrollerEl().scrollTop = y; measureListSticky(); });
+  }
 }
 
 function shiftPeriod(delta){
@@ -1286,15 +1497,31 @@ let listSort = 'desc', listRange = 'all', listType = 'all';
 
 function renderListView(){
   const container = document.getElementById('viewContainer');
+  const opts = [['all','All entries'],['today','Today'],['7d','Last 7 days'],['30d','Last 30 days'],['month','This month'],['year','This year'],['custom','Custom range…']];
   container.innerHTML =
-    '<div class="chart-card">' +
-      '<div class="list-controls">' +
-        '<h3 style="margin:0;flex:1;">All entries</h3>' +
+    '<div class="chart-card list-card" id="listCard">' +
+      '<div class="list-controls" id="listCtl">' +
+        '<select id="listRangeSel" class="list-range" onchange="onListRangeChange()">' +
+          opts.map(o => '<option value="' + o[0] + '">' + o[1] + '</option>').join('') +
+        '</select>' +
         '<button id="listSortBtn" class="list-sort-toggle" onclick="toggleListSort()"></button>' +
       '</div>' +
+      '<div class="list-custom" id="listCustom" style="display:none;">From <input type="date" id="listFrom" onchange="onListRangeChange()"> to <input type="date" id="listTo" onchange="onListRangeChange()"></div>' +
       '<div id="listBody"></div>' +
     '</div>';
+  document.getElementById('listRangeSel').value = listRange;
+  document.getElementById('listFrom').value = listFrom;
+  document.getElementById('listTo').value = listTo;
+  document.getElementById('listCustom').style.display = listRange === 'custom' ? 'flex' : 'none';
   updateSortButtonLabel();
+  renderListBody();
+}
+let listFrom = '', listTo = '';
+function onListRangeChange(){
+  listRange = document.getElementById('listRangeSel').value;
+  listFrom = document.getElementById('listFrom').value;
+  listTo = document.getElementById('listTo').value;
+  document.getElementById('listCustom').style.display = listRange === 'custom' ? 'flex' : 'none';
   renderListBody();
 }
 
@@ -1331,29 +1558,41 @@ function collectRows(lo, hi, type){
 
 function buildEntryTable(rows, sortDir){
   rows.sort((a,b) => sortDir === 'desc' ? b.time - a.time : a.time - b.time);
-  const showCat = false;
-  const cols = showCat ? 5 : 4;
-  let html = '<table class="list-table"><thead><tr><th>Time</th>' + (showCat ? '<th>Cat</th>' : '') +
-    '<th>Type</th><th>Detail</th><th>Note</th></tr></thead><tbody>';
+  let html = '<table class="list-table"><thead><tr><th>Time</th><th>Type</th><th>Detail</th><th>Note</th></tr></thead><tbody>';
   let lastDate = null;
   rows.forEach(r => {
     if(r.date !== lastDate){
-      const [yy,mm,dd] = r.date.split('-').map(Number);
-      const label = new Date(yy,mm-1,dd).toLocaleDateString(undefined,{weekday:'long', month:'short', day:'numeric'});
-      html += '<tr class="list-day-header"><td colspan="' + cols + '">' + label + '</td></tr>';
+      html += '<tr class="list-day-header"><td colspan="4">' + dayHeading(r.date) + '</td></tr>';
       lastDate = r.date;
     }
-    html += '<tr><td>' + fmtTime(r.time) + '</td>' + (showCat ? '<td>' + escapeHtml(r.cat) + '</td>' : '') +
-      '<td>' + r.type + '</td><td>' + r.detail + '</td><td>' + escapeHtml(r.note) + '</td></tr>';
+    html += '<tr><td>' + fmtTime(r.time) + '</td><td>' + r.type + '</td><td>' + r.detail + '</td><td>' + escapeHtml(r.note) + '</td></tr>';
   });
   return html + '</tbody></table>';
 }
 
+function keyDaysAgo(n){ const d = new Date(); d.setDate(d.getDate() - n); return dateKeyFromDate(d); }
 function renderListBody(){
-  const rows = collectRows(null, null, 'all');
+  const todayKey = dateKeyFromDate(new Date());
+  let lo = null, hi = null;
+  if(listRange === 'today'){ lo = hi = todayKey; }
+  else if(listRange === '7d'){ lo = keyDaysAgo(6); }
+  else if(listRange === '30d'){ lo = keyDaysAgo(29); }
+  else if(listRange === 'month'){ lo = todayKey.slice(0,8) + '01'; }
+  else if(listRange === 'year'){ lo = todayKey.slice(0,4) + '-01-01'; }
+  else if(listRange === 'custom'){ lo = listFrom || null; hi = listTo || null; }
+  const rows = collectRows(lo, hi, 'all');
   const body = document.getElementById('listBody');
   body.innerHTML = rows.length ? buildEntryTable(rows, listSort) : '<div class="empty-msg">No entries in this range.</div>';
+  measureListSticky();
 }
+function measureListSticky(){
+  const card = document.getElementById('listCard');
+  if(!card) return;
+  const ctl = document.getElementById('listCtl'), th = card.querySelector('thead');
+  card.style.setProperty('--ctlH', ctl.offsetHeight + 'px');
+  card.style.setProperty('--theadH', (th ? th.offsetHeight : 0) + 'px');
+}
+window.addEventListener('resize', () => setTimeout(measureListSticky, 50));
 
 // Entry list shown under the Week / Month / Year charts.
 function appendPeriodList(lo, hi, title){
@@ -1617,8 +1856,17 @@ document.addEventListener('click', hideTooltip);
 // Large, clear number + a plain visual bar (no text on the bar itself) for
 // any 1–6 style rating, used in place of "5.0/6" style text.
 
+let clockPref = 'auto';
+try{ clockPref = localStorage.getItem('clockPref') || 'auto'; }catch(e){}
 function fmtTime(d){
-  return d.toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit', hour12:false});
+  const o = {hour:'numeric', minute:'2-digit'};
+  if(clockPref === '12') o.hourCycle = 'h12';
+  else if(clockPref === '24'){ o.hourCycle = 'h23'; o.hour = '2-digit'; }
+  return d.toLocaleTimeString(undefined, o);
+}
+function setClockPref(v){
+  clockPref = v; try{ localStorage.setItem('clockPref', v); }catch(e){}
+  syncSettingsUI(); if(dateList.length) renderCurrentView(true);
 }
 
 function getScrollParent(el){
@@ -1919,10 +2167,12 @@ function drawCoreDayChart(containerId, date, drawExtra){
   const weather = weatherByDate[date];
 
   const dayStart = new Date(date + 'T00:00:00');
-  const dayEnd = new Date(dayStart.getTime() + 24*3600000);
+  // Next local midnight (not +24h): on daylight-saving change days the day is 23 or 25 hours long.
+  const dayEnd = new Date(dayStart.getFullYear(), dayStart.getMonth(), dayStart.getDate() + 1);
+  const dayHours = (dayEnd - dayStart) / 3600000;
 
   const margin = {top: 32, right: 16, bottom: 32, left: 38};
-  const plotWidth = PX_PER_HOUR * 24;
+  const plotWidth = PX_PER_HOUR * dayHours;
   const width = plotWidth + margin.left + margin.right;
   const plotHeight = 260;
 
@@ -2063,7 +2313,7 @@ function drawCoreDayChart(containerId, date, drawExtra){
 
   g.append('g').attr('class','axis')
     .attr('transform', `translate(0,${plotHeight})`)
-    .call(d3.axisBottom(x).ticks(d3.timeHour.every(1)).tickFormat(d3.timeFormat('%H:%M')));
+    .call(d3.axisBottom(x).ticks(d3.timeHour.every(1)).tickFormat(d => fmtTime(d)));
   g.append('g').attr('class','axis')
     .call(d3.axisLeft(y).ticks(6).tickFormat(d3.format('d')));
 
@@ -2075,7 +2325,7 @@ function drawCoreDayChart(containerId, date, drawExtra){
   const hitRadius = barW/2 + 4;
   function updateMarkerInfo(){
     const containerWidth = scrollWrap.clientWidth;
-    const plotX = Math.max(0, Math.min(plotWidth, scrollWrap.scrollLeft - margin.left));
+    const plotX = Math.max(0, Math.min(plotWidth, scrollWrap.scrollLeft));
     const t = x.invert(plotX);
 
     const overlaps = [];
@@ -2118,8 +2368,12 @@ function drawCoreDayChart(containerId, date, drawExtra){
   requestAnimationFrame(() => {
     const containerWidth = scrollWrap.clientWidth;
     const halfPad = containerWidth / 2;
-    area.style.paddingLeft = halfPad + 'px';
-    area.style.paddingRight = halfPad + 'px';
+    // Spacers sized so scrollLeft maps 1:1 to plot x: scrollLeft 0 = 00:00 under the marker,
+    // max scroll = 24:00. (content-box + explicit width so the padding is real scrollable space.)
+    area.style.boxSizing = 'content-box';
+    area.style.width = width + 'px';
+    area.style.paddingLeft = Math.max(0, halfPad - margin.left) + 'px';
+    area.style.paddingRight = Math.max(0, halfPad - margin.right) + 'px';
 
     let targetPlotX;
     const todayKey = dateKeyFromDate(new Date());
@@ -2130,7 +2384,7 @@ function drawCoreDayChart(containerId, date, drawExtra){
         .sort((a,b)=>a-b)[0];
       targetPlotX = firstEvent ? x(firstEvent) : x(new Date(dayStart.getTime()+6*3600000));
     }
-    scrollWrap.scrollLeft = Math.max(0, targetPlotX + margin.left);
+    scrollWrap.scrollLeft = Math.max(0, targetPlotX);
     updateMarkerInfo();
   });
 }
@@ -2320,6 +2574,8 @@ window.addEventListener('resize', () => {
 });
 document.addEventListener('keydown', e => { if(e.key==='Escape' && document.getElementById('addEventBackdrop').style.display !== 'none') toggleAddEventForm(); });
 applyTheme();
+applyTitleFont();
+applyHoliday();
 initDeviceMode();
 updateIconsAndManifest(generateDefaultIcon());
 loadData();
