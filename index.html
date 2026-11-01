@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Puddle's Pee</title>
+<title>Cat bathroom tracker</title>
 <meta name="description" content="Cat urinary health tracker: straining, pee frequency and size, weather, feeding times, and stressful events.">
 <meta name="keywords" content="cat, cats, pee, peeing, urination, litter box, straining, urinary, UTI, blockage, health tracker, feeding, weather">
 <link id="faviconLink" rel="icon" href="">
@@ -20,7 +20,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Cats">
+<meta name="apple-mobile-web-app-title" content="Cat bathroom tracker">
 <meta name="theme-color" content="#1e2624">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <style>
@@ -247,7 +247,7 @@
         <header>
           <div style="display:flex;align-items:center;gap:10px;">
             <img id="logoImg" src="" alt="" style="display:none;width:32px;height:32px;border-radius:8px;object-fit:cover;">
-            <h1>Puddle's Pee</h1>
+            <h1>Cat bathroom tracker</h1>
           </div>
         </header>
 
@@ -396,9 +396,11 @@ let allStraining = [], allPee = [], allPoop = [], allStressEvents = [];
 // Entries with no Cat value (written before this feature existed) count as
 // belonging to the first cat, for backward compatibility.
 const CATS = ['Puddle', 'Mochi', 'Thumbs', 'Tuna'];
+const ALL_CATS = '__all__';
 let currentCat = CATS[0];
+let defaultLogo = '';
 function belongsToCurrentCat(entry){
-  return (entry.cat || CATS[0]) === currentCat;
+  return currentCat === ALL_CATS || (entry.cat || CATS[0]) === currentCat;
 }
 // Re-derives the working arrays every render function already reads, so
 // switching cats doesn't require touching any rendering code.
@@ -475,7 +477,8 @@ let catPhotos = {}; // catName -> data URI, from the sheet's Config tab
 
 function renderCatTabs(){
   const el = document.getElementById('catTabs');
-  el.innerHTML = CATS.map(c => {
+  el.innerHTML = CATS.concat([ALL_CATS]).map(c => {
+    if(c === ALL_CATS) return `<button class="${currentCat === ALL_CATS ? 'active' : ''}" onclick="switchCat('${ALL_CATS}')">All</button>`;
     const photo = catPhotos[c]
       ? `<img src="${catPhotos[c]}" alt="" style="width:18px;height:18px;border-radius:50%;object-fit:cover;vertical-align:-5px;margin-right:4px;">`
       : '';
@@ -483,9 +486,16 @@ function renderCatTabs(){
   }).join('');
 }
 
+function updateHeaderPhoto(){
+  const img = document.getElementById('logoImg');
+  const src = catPhotos[currentCat] || defaultLogo;
+  if(src){ img.src = src; img.style.display = ''; } else { img.style.display = 'none'; }
+}
+
 function switchCat(cat){
   if(cat === currentCat) return;
   currentCat = cat;
+  updateHeaderPhoto();
   applyCatFilter();
   renderCatTabs();
   renderCurrentView();
@@ -564,12 +574,12 @@ async function loadWeather(earliestDateKey){
 function updateIconsAndManifest(logoDataUri){
   document.getElementById('faviconLink').href = logoDataUri;
   document.getElementById('appleTouchIcon').href = logoDataUri;
-  document.getElementById('logoImg').src = logoDataUri;
-  document.getElementById('logoImg').style.display = '';
+  defaultLogo = logoDataUri;
+  updateHeaderPhoto();
 
   const manifest = {
-    name: "Cats",
-    short_name: "Cats",
+    name: "Cat bathroom tracker",
+    short_name: "Cat bathroom tracker",
     start_url: '.',
     display: 'standalone',
     background_color: '#eef1ee',
@@ -690,7 +700,7 @@ function toggleAddEventForm(){
       catWrap.style.display = 'block';
       const sel = document.getElementById('entryCat');
       sel.innerHTML = CATS.map(c => '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>').join('');
-      sel.value = currentCat;
+      sel.value = currentCat === ALL_CATS ? CATS[0] : currentCat;
     } else {
       catWrap.style.display = 'none';
     }
@@ -833,6 +843,7 @@ function loadData(silent){
         console.log('Logo not found — diagnostic info:', data.logoDebug);
       }
       catPhotos = data.catPhotos || {};
+      updateHeaderPhoto();
       if(CATS.length > 1) renderCatTabs();
 
       const eventDates = [...allStraining.map(s=>s.date), ...allPee.map(p=>p.date), ...allPoop.map(p=>p.date)];
@@ -979,16 +990,19 @@ function renderCurrentView(){
       formatDateLabel(days[0]) + ' – ' + formatDateLabel(days[6]);
     renderWeekStats(days);
     renderMultiDayCharts(days);
+    appendPeriodList(days[0], days[6], 'Entries this week');
   } else if(currentView === 'month'){
     const days = monthDates(monthAnchor);
     document.getElementById('periodLabel').textContent =
       monthAnchor.toLocaleDateString(undefined, {month:'long', year:'numeric'});
     renderMonthStats(monthAnchor);
     renderMultiDayCharts(days);
+    appendPeriodList(days[0], days[days.length-1], 'Entries this month');
   } else if(currentView === 'year'){
     document.getElementById('periodLabel').textContent = String(monthAnchor.getFullYear());
     renderYearStats(monthAnchor);
     renderYearView(monthAnchor);
+    appendPeriodList(monthAnchor.getFullYear() + '-01-01', monthAnchor.getFullYear() + '-12-31', 'Entries this year');
   } else {
     document.getElementById('statsRow').innerHTML = '';
     renderListView();
@@ -1044,69 +1058,66 @@ function onListControlChange(){
   renderListBody();
 }
 
-function renderListBody(){
-  const today = new Date();
-  const todayKey = dateKeyFromDate(today);
-  let minKeyBound = null;
-  if(listRange === 'week'){
-    const days = weekDates(today);
-    minKeyBound = days[0];
-  } else if(listRange === 'month'){
-    minKeyBound = todayKey.slice(0,8) + '01';
-  } else if(listRange === 'year'){
-    minKeyBound = todayKey.slice(0,4) + '-01-01';
-  }
-
+function collectRows(lo, hi, type){
   let rows = [];
-  if(listType === 'all' || listType === 'straining'){
-    straining.forEach(s => rows.push({
-      date: s.date, time: s.start, type: '🚽 Straining',
-      detail: Math.round((s.end - s.start)/60000) + ' min',
-      note: s.note || ''
-    }));
+  const c = x => x.cat || CATS[0];
+  if(type === 'all' || type === 'straining'){
+    straining.forEach(x => rows.push({date:x.date, time:x.start, cat:c(x), type:'🚽 Straining',
+      detail: Math.round((x.end - x.start)/60000) + ' min', note:x.note||''}));
   }
-  if(listType === 'all' || listType === 'pee'){
-    pee.forEach(p => rows.push({
-      date: p.date, time: p.time, type: '💧 Pee',
-      detail: 'Size ' + p.rating + '/6',
-      note: p.note || ''
-    }));
+  if(type === 'all' || type === 'pee'){
+    pee.forEach(x => rows.push({date:x.date, time:x.time, cat:c(x), type:'💧 Pee',
+      detail:'Size ' + x.rating + '/6', note:x.note||''}));
   }
-  if(listType === 'all' || listType === 'poop'){
-    poop.forEach(p => rows.push({
-      date: p.date, time: p.time, type: '💩 Poop',
-      detail: poopAmountLabel(p.rating),
-      note: p.note || ''
-    }));
+  if(type === 'all' || type === 'poop'){
+    poop.forEach(x => rows.push({date:x.date, time:x.time, cat:c(x), type:'💩 Poop',
+      detail:poopAmountLabel(x.rating), note:x.note||''}));
   }
-  if(minKeyBound){
-    rows = rows.filter(r => r.date >= minKeyBound && r.date <= todayKey);
-  }
-  rows.sort((a,b) => listSort === 'desc' ? b.time - a.time : a.time - b.time);
+  if(lo) rows = rows.filter(r => r.date >= lo);
+  if(hi) rows = rows.filter(r => r.date <= hi);
+  return rows;
+}
 
-  const body = document.getElementById('listBody');
-  if(!rows.length){
-    body.innerHTML = '<div class="empty-msg">No entries in this range.</div>';
-    return;
-  }
-
-  let html = '<table class="list-table"><thead><tr>' +
-    '<th>Time</th><th>Type</th><th>Detail</th><th>Note</th></tr></thead><tbody>';
+function buildEntryTable(rows, sortDir){
+  rows.sort((a,b) => sortDir === 'desc' ? b.time - a.time : a.time - b.time);
+  const showCat = currentCat === ALL_CATS;
+  const cols = showCat ? 5 : 4;
+  let html = '<table class="list-table"><thead><tr><th>Time</th>' + (showCat ? '<th>Cat</th>' : '') +
+    '<th>Type</th><th>Detail</th><th>Note</th></tr></thead><tbody>';
   let lastDate = null;
   rows.forEach(r => {
     if(r.date !== lastDate){
       const [yy,mm,dd] = r.date.split('-').map(Number);
       const label = new Date(yy,mm-1,dd).toLocaleDateString(undefined,{weekday:'long', month:'short', day:'numeric'});
-      html += '<tr class="list-day-header"><td colspan="4">' + label + '</td></tr>';
+      html += '<tr class="list-day-header"><td colspan="' + cols + '">' + label + '</td></tr>';
       lastDate = r.date;
     }
-    html += '<tr><td>' + fmtTime(r.time) + '</td>' +
-      '<td>' + r.type + '</td>' +
-      '<td>' + r.detail + '</td>' +
-      '<td>' + escapeHtml(r.note) + '</td></tr>';
+    html += '<tr><td>' + fmtTime(r.time) + '</td>' + (showCat ? '<td>' + escapeHtml(r.cat) + '</td>' : '') +
+      '<td>' + r.type + '</td><td>' + r.detail + '</td><td>' + escapeHtml(r.note) + '</td></tr>';
   });
-  html += '</tbody></table>';
-  body.innerHTML = html;
+  return html + '</tbody></table>';
+}
+
+function renderListBody(){
+  const today = new Date();
+  const todayKey = dateKeyFromDate(today);
+  let lo = null;
+  if(listRange === 'week') lo = weekDates(today)[0];
+  else if(listRange === 'month') lo = todayKey.slice(0,8) + '01';
+  else if(listRange === 'year') lo = todayKey.slice(0,4) + '-01-01';
+  const rows = collectRows(lo, lo ? todayKey : null, listType);
+  const body = document.getElementById('listBody');
+  body.innerHTML = rows.length ? buildEntryTable(rows, listSort) : '<div class="empty-msg">No entries in this range.</div>';
+}
+
+// Entry list shown under the Week / Month / Year charts.
+function appendPeriodList(lo, hi, title){
+  const rows = collectRows(lo, hi, 'all');
+  const card = document.createElement('div');
+  card.className = 'chart-card';
+  card.innerHTML = '<h3>' + title + '</h3>' +
+    (rows.length ? buildEntryTable(rows, 'desc') : '<div class="empty-msg">No entries in this period.</div>');
+  document.getElementById('viewContainer').appendChild(card);
 }
 
 function weekDates(anchor){
@@ -1498,15 +1509,16 @@ document.addEventListener('click', function(e){
 function renderDayInlineList(date){
   const rows = [];
   straining.filter(s=>s.date===date).forEach(s => rows.push({
-    time: s.start, type: '🚽 Straining', detail: Math.round((s.end-s.start)/60000) + ' min', note: s.note||''
+    cat: s.cat || CATS[0], time: s.start, type: '🚽 Straining', detail: Math.round((s.end-s.start)/60000) + ' min', note: s.note||''
   }));
   pee.filter(p=>p.date===date).forEach(p => rows.push({
-    time: p.time, type: '💧 Pee', detail: 'Size ' + p.rating + '/6', note: p.note||''
+    cat: p.cat || CATS[0], time: p.time, type: '💧 Pee', detail: 'Size ' + p.rating + '/6', note: p.note||''
   }));
   poop.filter(p=>p.date===date).forEach(p => rows.push({
-    time: p.time, type: '💩 Poop', detail: poopAmountLabel(p.rating), note: p.note||''
+    cat: p.cat || CATS[0], time: p.time, type: '💩 Poop', detail: poopAmountLabel(p.rating), note: p.note||''
   }));
   rows.sort((a,b) => a.time - b.time);
+  if(currentCat === ALL_CATS) rows.forEach(r => r.note = ((r.cat ? r.cat + (r.note ? ' — ' : '') : '')) + r.note);
 
   const el = document.getElementById('dayInlineList');
   if(!rows.length){
@@ -2005,6 +2017,7 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn, labelsOnly){
 
   function onDown(e){
     if(e.target.closest('.chart-canvas')) return;
+    if(e.target.closest('.sticky-top')) return; // header buttons / cat tabs / nav never swipe days
     if(e.target.closest('#addEventBackdrop')) return; // modal is open — nothing behind it should react
     startX = e.clientX; startY = e.clientY; tracking = true;
   }
@@ -2020,6 +2033,24 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn, labelsOnly){
   zone.addEventListener('pointerdown', onDown);
   zone.addEventListener('pointerup', onUp);
   zone.addEventListener('pointercancel', () => tracking = false);
+})();
+
+// Nothing behind the form may scroll: swallow touch-moves on the backdrop,
+// and inside the card only allow scrolling when the card itself can scroll
+// and isn't at an edge (stops scroll chaining into the page underneath).
+(function(){
+  const bd = document.getElementById('addEventBackdrop');
+  const card = document.getElementById('addEventForm');
+  let lastY = 0;
+  bd.addEventListener('touchstart', e => { lastY = e.touches[0].clientY; }, {passive:true});
+  bd.addEventListener('touchmove', e => {
+    if(!card.contains(e.target)){ e.preventDefault(); return; }
+    const dy = e.touches[0].clientY - lastY; lastY = e.touches[0].clientY;
+    const canScroll = card.scrollHeight > card.clientHeight + 1;
+    const atTop = card.scrollTop <= 0, atBottom = card.scrollTop + card.clientHeight >= card.scrollHeight - 1;
+    if(!canScroll || (dy > 0 && atTop) || (dy < 0 && atBottom)) e.preventDefault();
+  }, {passive:false});
+  bd.addEventListener('wheel', e => { if(!card.contains(e.target)) e.preventDefault(); }, {passive:false});
 })();
 
 window.addEventListener('resize', () => { if(document.getElementById('addEventBackdrop').style.display === 'none') renderCurrentView(); });
