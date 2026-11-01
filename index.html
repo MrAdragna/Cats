@@ -21,7 +21,17 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Cat Bathroom Tracker">
-<meta name="theme-color" content="#1e2624">
+<meta name="theme-color" content="#eef1ee">
+<meta name="color-scheme" content="light dark">
+<script>
+(function(){
+  try{
+    var pref = localStorage.getItem('themePref') || 'auto';
+    var dark = pref === 'dark' || (pref === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  }catch(e){ document.documentElement.setAttribute('data-theme','light'); }
+})();
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <style>
   :root{
@@ -39,7 +49,40 @@
     --band-b:#eef1ee;
     --week-band-a:#d9ded3;
     --week-band-b:#f4f6f1;
+    --on-ink:#ffffff;
+    --poop:#6b4a2f; --poop-edge:#3a2a1c;
+    --stress:#7a3b8c;
+    --sunk:#e3e8e3;
+    color-scheme:light;
   }
+  /* Dark mode: near-black base (not pure black, so elevated surfaces can read
+     lighter), desaturated accents, off-white text, borders instead of shadows. */
+  :root[data-theme="dark"]{
+    --paper:#0d1110;
+    --ink:#e8edea;
+    --ink-soft:#9ba7a1;
+    --line:#29302d;
+    --card:#161b19;
+    --strain:#e27d5d;
+    --strain-soft:rgba(226,125,93,0.26);
+    --pee:#4db6ae;
+    --accent:#3f8a80;
+    --error:#e8785d;
+    --band-a:#1c2220;
+    --band-b:#161b19;
+    --week-band-a:#222926;
+    --week-band-b:#191e1c;
+    --on-ink:#0d1110;
+    --poop:#c08f62; --poop-edge:#e0b88f;
+    --stress:#c88ad8;
+    --sunk:#0a0d0c;
+    color-scheme:dark;
+  }
+  html{background:var(--paper);}
+  :root[data-theme="dark"] .chart-card,:root[data-theme="dark"] .stat{box-shadow:none;}
+  :root[data-theme="dark"] .fab-add{box-shadow:0 6px 18px rgba(0,0,0,0.6);}
+  :root[data-theme="dark"] .cat-btn img{filter:brightness(0.92);}
+  :root[data-theme="dark"] .tooltip{background:#2a322f;color:#e8edea;border:1px solid #3a4440;}
   *{box-sizing:border-box;}
   html{font-size:115%;}
   html,body{height:100%;}
@@ -59,9 +102,9 @@
   }
   .device-toggle button{
     padding:6px 14px; border-radius:999px; border:1px solid #a39d89;
-    background:#efece3; color:var(--ink); font-size:0.8rem; cursor:pointer;
+    background:#efece3; color:#1e2624; font-size:0.8rem; cursor:pointer;
   }
-  .device-toggle button.active{background:var(--ink); color:#fff; border-color:var(--ink);}
+  .device-toggle button.active{background:var(--ink); color:var(--on-ink); border-color:var(--ink);}
 
   .stage{display:flex; justify-content:center; align-items:flex-start; padding:24px 12px 60px; min-height:calc(100vh - 46px);}
   .stage.native-stage{padding:0; min-height:100vh; display:block;}
@@ -105,7 +148,7 @@
     background:var(--paper);
     padding-top:22px; padding-bottom:2px;
   }
-  header{position:relative;margin-bottom:16px;border-bottom:2px solid var(--ink);padding-bottom:12px;}
+  header{position:relative;margin-bottom:12px;padding-bottom:2px;}
   header h1{text-align:center;font-size:1.3rem;margin:0;font-weight:700;letter-spacing:-0.01em;}
   header .sub{color:var(--ink-soft);font-size:0.85rem;}
 
@@ -126,17 +169,42 @@
   .spinner{width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;margin:0 auto 14px;animation:spin 0.8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
 
-  .cat-tabs{display:flex;gap:6px;margin-bottom:14px;}
-  .cat-tabs button{flex:1 1 0;min-width:0;padding:10px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:10px;border:2px solid var(--line);background:var(--card);color:var(--ink-soft);font-size:0.8rem;font-weight:700;cursor:pointer;}
-  .cat-tabs button.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+  .cat-tabs{position:relative;display:grid;grid-template-columns:repeat(4,1fr);justify-items:center;margin:2px 0 16px;}
+  .cat-btn{width:64px;height:64px;border-radius:50%;border:2px solid var(--line);padding:0;background:var(--card);overflow:hidden;
+    color:var(--ink);font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;
+    opacity:.6;transform:scale(.86);transition:transform .45s cubic-bezier(.34,1.56,.64,1),opacity .3s ease;-webkit-tap-highlight-color:transparent;}
+  .cat-btn.active{opacity:1;transform:scale(1);}
+  .cat-btn:active{transform:scale(.92);}
+  .cat-btn img{width:100%;height:100%;object-fit:cover;display:block;}
+  .cat-ring{position:absolute;top:-4px;left:0;width:72px;height:72px;border-radius:50%;border:3px solid var(--accent);pointer-events:none;
+    transition:transform .5s cubic-bezier(.34,1.4,.5,1);will-change:transform;}
+  .cat-ring.no-anim{transition:none;}
+  @keyframes catSwap{from{opacity:0;transform:translateY(8px) scale(.985);}to{opacity:1;transform:none;}}
+  #periodContent.cat-swap{animation:catSwap .38s cubic-bezier(0.22,0.61,0.36,1);}
   .view-switch{position:relative;display:flex;margin:0 auto 12px;max-width:260px;background:var(--line);border-radius:999px;padding:3px;}
   .view-switch .pill{position:absolute;top:3px;bottom:3px;left:3px;width:calc(50% - 3px);background:var(--ink);border-radius:999px;transition:transform .22s cubic-bezier(0.22,0.61,0.36,1);}
-  .view-switch[data-view="list"] .pill{transform:translateX(100%);}
+  .view-switch[data-view="day"] .pill{transform:translateX(100%);}
   .view-switch button{position:relative;flex:1;padding:8px 0;border:none;background:transparent;color:var(--ink-soft);font-size:0.85rem;font-weight:700;cursor:pointer;border-radius:999px;transition:color .2s;}
-  .view-switch button.active{color:#fff;}
+  .view-switch button.active{color:var(--on-ink);}
   .view-tabs{display:none;}
+  :root[data-theme="dark"] .list-day-header td{background:#222927;color:var(--ink);}
+  .list-table td,.list-table th{padding-left:5px;padding-right:5px;}
+  .list-table td:last-child{word-break:break-word;}
+  .last-seen{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px;}
+  .last-seen span{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 11px;font-size:0.76rem;color:var(--ink-soft);}
+  .last-seen b{color:var(--ink);font-weight:700;}
+  .toast{position:fixed;left:50%;bottom:max(96px,calc(env(safe-area-inset-bottom) + 90px));transform:translate(-50%,20px);opacity:0;pointer-events:none;
+    background:var(--ink);color:var(--on-ink);padding:10px 18px;border-radius:999px;font-size:0.88rem;font-weight:600;z-index:95;transition:opacity .25s,transform .35s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;}
+  .toast.show{opacity:1;transform:translate(-50%,0);}
+  button{-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+  .day-nav button:active,.entry-type-btn:active,.size-row button:active,.quick-row button:active,.today-btn:active,.list-sort-toggle:active,.view-switch button:active{transform:scale(.95);}
+  .list-table,.stat,.last-seen{font-variant-numeric:tabular-nums;}
+  @media (prefers-reduced-motion: reduce){*{animation-duration:.01ms !important;transition-duration:.01ms !important;}}
+  .theme-seg{display:flex;background:var(--line);border-radius:999px;padding:3px;margin-bottom:14px;}
+  .theme-seg button{flex:1;border:none;background:transparent;color:var(--ink-soft);padding:7px 0;border-radius:999px;font-size:0.82rem;font-weight:600;cursor:pointer;}
+  .theme-seg button.active{background:var(--ink);color:var(--on-ink);}
   .view-tabs button{flex:1;padding:8px 0;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink-soft);font-size:0.72rem;font-weight:600;cursor:pointer;}
-  .view-tabs button.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .view-tabs button.active{background:var(--ink);color:var(--on-ink);border-color:var(--ink);}
 
   .day-nav{display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
   .day-nav button{width:32px;height:32px;border-radius:7px;border:1px solid var(--line);background:var(--card);cursor:pointer;font-size:1rem;color:var(--ink);flex-shrink:0;}
@@ -147,7 +215,7 @@
   .today-btn{width:auto !important;padding:0 12px;margin-left:auto;font-size:0.78rem;background:var(--card);color:var(--accent);border:1px solid var(--accent) !important;font-weight:600;}
   .today-btn.current{background:var(--accent);color:#fff;}
   .entry-type-btn{padding:10px 4px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink-soft);font-size:0.82rem;font-weight:600;cursor:pointer;}
-  .entry-type-btn.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .entry-type-btn.active{background:var(--ink);color:var(--on-ink);border-color:var(--ink);}
 
   .stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
   .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:110px;flex:1;}
@@ -179,15 +247,16 @@
   .list-table th{text-align:left;padding:6px 8px;color:var(--ink-soft);font-size:0.72rem;text-transform:uppercase;letter-spacing:0.03em;border-bottom:2px solid var(--ink);}
   .list-table td{padding:7px 8px;border-bottom:1px solid var(--line);}
   .list-table tr:nth-child(even){background:var(--band-a);}
-  .list-controls{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
-  .list-controls select{flex:1;min-width:100px;padding:7px 8px;border:1px solid var(--line);border-radius:7px;background:var(--card);font-size:0.78rem;color:var(--ink);}
+  .list-controls{display:flex;gap:6px;align-items:center;margin:-14px -10px 8px;padding:12px 10px 8px;
+    position:sticky;top:var(--stickyH, 120px);z-index:6;background:var(--card);border-radius:10px 10px 0 0;border-bottom:1px solid var(--line);}
+  .list-controls .sel-unused{flex:1;min-width:100px;padding:7px 8px;border:1px solid var(--line);border-radius:7px;background:var(--card);font-size:0.78rem;color:var(--ink);}
   .list-sort-toggle{flex:1;min-width:100px;padding:7px 8px;border:1px solid var(--accent);border-radius:7px;background:var(--card);color:var(--accent);font-size:0.78rem;font-weight:600;cursor:pointer;}
-  .list-day-header td{background:var(--ink);color:#fff;font-weight:700;font-size:0.78rem;padding:8px;border-bottom:none;}
+  .list-day-header td{background:var(--ink);color:var(--on-ink);font-weight:700;font-size:0.78rem;padding:8px;border-bottom:none;}
 
   .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:6px;padding:0 6px;font-size:0.76rem;color:var(--ink-soft);}
   .legend .swatch{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px;}
 
-  .tooltip{position:fixed;pointer-events:none;background:var(--ink);color:#fff;padding:8px 12px;border-radius:8px;font-size:0.78rem;opacity:0;transition:opacity .08s;z-index:50;white-space:nowrap;line-height:1.6;box-shadow:0 4px 14px rgba(0,0,0,0.25);}
+  .tooltip{position:fixed;pointer-events:none;background:var(--ink);color:var(--on-ink);padding:8px 12px;border-radius:8px;font-size:0.78rem;opacity:0;transition:opacity .08s;z-index:50;white-space:nowrap;line-height:1.6;box-shadow:0 4px 14px rgba(0,0,0,0.25);}
 
   .fab-add{
     position:fixed;
@@ -227,7 +296,7 @@
   .modal-card input[type=datetime-local]{min-height:44px;}
   .size-row{display:flex;gap:6px;margin-top:4px;}
   .size-row button{flex:1;min-height:46px;border-radius:8px;border:1px solid var(--line);background:var(--card);font-weight:700;cursor:pointer;color:var(--ink);}
-  .size-row button.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .size-row button.active{background:var(--ink);color:var(--on-ink);border-color:var(--ink);}
   .quick-row{display:flex;gap:6px;margin-top:6px;}
   .quick-row button{flex:1;padding:8px 0;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:14px;cursor:pointer;color:var(--ink);}
   body.modal-open{overflow:hidden;}
@@ -250,17 +319,16 @@
     <div class="wrap">
       <div class="sticky-top" id="stickyTop">
         <header>
-          <img id="catCorner" src="" alt="" style="display:none;position:absolute;right:0;top:50%;transform:translateY(-62%);width:40px;height:40px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px var(--paper),0 0 0 3px var(--line);">
           <h1 id="appTitle" onclick="showAbout()" style="cursor:pointer;">Cat Bathroom Tracker</h1>
         </header>
 
         <div id="catTabs" class="cat-tabs" style="display:none;"></div>
 
         <div id="stickyNav" style="display:none;">
-          <div class="view-switch" id="viewSwitch" data-view="day">
+          <div class="view-switch" id="viewSwitch" data-view="list">
             <span class="pill"></span>
-            <button id="tabDay" onclick="setView('day')">Day</button>
             <button id="tabList" onclick="setView('list')">List</button>
+            <button id="tabDay" onclick="setView('day')">Day</button>
           </div>
 
           <div class="day-nav" id="dayNav">
@@ -282,6 +350,7 @@
 
       <div id="appArea" style="display:none;">
 
+        <div id="lastSeen" class="last-seen"></div>
         <div id="periodContent">
           <div id="viewContainer"></div>
           <div class="stats" id="statsRow" style="margin-top:14px;"></div>
@@ -291,15 +360,21 @@
   </div>
 </div>
 
-<div id="updateBanner" style="display:none;position:fixed;z-index:85;left:50%;transform:translateX(-50%);top:max(10px,env(safe-area-inset-top));align-items:center;gap:10px;background:var(--ink);color:#fff;padding:8px 8px 8px 16px;border-radius:999px;font-size:0.85rem;box-shadow:0 6px 20px rgba(0,0,0,0.3);white-space:nowrap;">
+<div id="toast" class="toast"></div>
+<div id="updateBanner" style="display:none;position:fixed;z-index:85;left:50%;transform:translateX(-50%);top:max(10px,env(safe-area-inset-top));align-items:center;gap:10px;background:var(--ink);color:var(--on-ink);padding:8px 8px 8px 16px;border-radius:999px;font-size:0.85rem;box-shadow:0 6px 20px rgba(0,0,0,0.3);white-space:nowrap;">
   New version available
-  <button onclick="reloadLatest()" style="border:none;border-radius:999px;padding:7px 14px;background:#fff;color:var(--ink);font-weight:700;font-size:0.85rem;cursor:pointer;">Reload</button>
+  <button onclick="reloadLatest()" style="border:none;border-radius:999px;padding:7px 14px;background:var(--on-ink);color:var(--ink);font-weight:700;font-size:0.85rem;cursor:pointer;">Reload</button>
 </div>
 <div id="aboutBackdrop" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(20,24,30,0.5);align-items:center;justify-content:center;padding:24px;" onclick="if(event.target===this) hideAbout();">
   <div style="background:var(--card);border-radius:16px;padding:22px 24px;max-width:320px;width:100%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
     <div style="font-weight:700;margin-bottom:6px;">Cat Bathroom Tracker</div>
     <div id="aboutStamp" style="color:var(--ink-soft);font-size:0.95rem;margin-bottom:6px;"></div>
     <div id="aboutRemote" style="color:var(--ink-soft);font-size:0.8rem;margin-bottom:16px;"></div>
+    <div id="themeSeg" class="theme-seg">
+      <button data-pref="auto" onclick="setThemePref('auto')">Auto</button>
+      <button data-pref="light" onclick="setThemePref('light')">Light</button>
+      <button data-pref="dark" onclick="setThemePref('dark')">Dark</button>
+    </div>
     <div style="display:flex;gap:8px;">
       <button onclick="hideAbout()" style="flex:1;padding:12px;border-radius:8px;border:1px solid var(--line);background:var(--card);font-size:16px;color:var(--ink);">Close</button>
       <button onclick="reloadLatest()" style="flex:1;padding:12px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:16px;font-weight:600;">Reload</button>
@@ -414,7 +489,45 @@ let allStraining = [], allPee = [], allPoop = [], allStressEvents = [];
 // belonging to the first cat, for backward compatibility.
 // Stamped each time the file is regenerated, so the popup tells you which
 // version your device is actually running.
-const BUILD_STAMP = '2026-11-01T17:19:08-05:00';
+const BUILD_STAMP = '2026-11-01T17:35:13-05:00';
+function applyTheme(){
+  let pref = 'auto';
+  try{ pref = localStorage.getItem('themePref') || 'auto'; }catch(e){}
+  const dark = pref === 'dark' || (pref === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const was = document.documentElement.dataset.theme;
+  document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+  document.querySelector('meta[name="theme-color"]').content = dark ? '#0d1110' : '#eef1ee';
+  document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('active', b.dataset.pref === pref));
+  if(was !== document.documentElement.dataset.theme && typeof dateList !== 'undefined' && dateList.length) renderCurrentView(true);
+}
+function setThemePref(pref){ try{ localStorage.setItem('themePref', pref); }catch(e){} applyTheme(); }
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
+
+let _toastT = null;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(_toastT); _toastT = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function agoText(ms){
+  const m = Math.floor(ms / 60000);
+  if(m < 1) return 'just now';
+  if(m < 60) return m + 'm ago';
+  const h = Math.floor(m / 60);
+  if(h < 24) return h + 'h ' + (m % 60) + 'm ago';
+  return Math.floor(h / 24) + 'd ago';
+}
+function updateLastSeen(){
+  const el = document.getElementById('lastSeen');
+  if(!el) return;
+  const now = Date.now();
+  const latest = arr => arr.length ? Math.max.apply(null, arr.map(x => (x.time || x.start).getTime())) : null;
+  const items = [['Pee', latest(pee)], ['Strain', latest(straining)], ['Poop', latest(poop)]];
+  el.innerHTML = items.filter(i => i[1] && i[1] <= now + 60000)
+    .map(i => '<span>Last ' + i[0] + ' <b>' + agoText(now - i[1]) + '</b></span>').join('');
+}
+setInterval(updateLastSeen, 60000);
+
 function showAbout(){
   const d = new Date(BUILD_STAMP);
   document.getElementById('aboutStamp').textContent = 'Last updated: ' +
@@ -432,6 +545,7 @@ function reloadLatest(){ location.href = location.pathname + '?v=' + Date.now();
 
 const CATS = ['Puddle', 'Mochi', 'Thumbs', 'Tuna'];
 let currentCat = CATS[0];
+try{ const lc = localStorage.getItem('lastCat'); if(lc && CATS.indexOf(lc) !== -1) currentCat = lc; }catch(e){}
 let defaultLogo = '';
 function belongsToCurrentCat(entry){
   return (entry.cat || CATS[0]) === currentCat;
@@ -448,7 +562,7 @@ function applyCatFilter(){
 let dayOverlay = 'none'; // 'none' | 'weather' | 'feeding' | 'stress' — the Day chart's single optional overlay
 let dateList = [];        // every calendar day from first entry through today
 let currentDateIdx = 0;
-let currentView = 'day';  // 'day' | 'week' | 'month'
+let currentView = 'list';  // 'day' | 'week' | 'month'
 let monthAnchor = null;   // Date used to anchor the month/week grid
 
 document.addEventListener('securitypolicyviolation', function(e){
@@ -494,7 +608,7 @@ function showState(kind, message){
     nav.style.display = 'block';
     fab.style.display = 'flex';
     if(CATS.length > 1){
-      catTabs.style.display = 'flex';
+      catTabs.style.display = 'grid';
       renderCatTabs();
     }
     return;
@@ -510,27 +624,55 @@ function showState(kind, message){
 
 let catPhotos = {}; // catName -> data URI, from the sheet's Config tab
 
+function catLabelSize(name){ return name.length <= 4 ? '1rem' : name.length <= 6 ? '0.8rem' : '0.66rem'; }
+
 function renderCatTabs(){
   const el = document.getElementById('catTabs');
-  el.innerHTML = CATS.map(c => {
-    const photo = '';
-    return `<button class="${c === currentCat ? 'active' : ''}" onclick="switchCat('${c.replace(/'/g,"\\'")}')">${photo}${escapeHtml(c)}</button>`;
-  }).join('');
+  if(!el.querySelector('.cat-ring')){
+    el.innerHTML = '<div class="cat-ring no-anim"></div>' + CATS.map((c,i) =>
+      '<button class="cat-btn" data-cat="' + escapeHtml(c) + '" aria-label="' + escapeHtml(c) + '" title="' + escapeHtml(c) + '" onclick="switchCat(' + i + ')"></button>').join('');
+  }
+  el.querySelectorAll('.cat-btn').forEach((btn,i) => {
+    const c = CATS[i], photo = catPhotos[c] || '';
+    if(btn.dataset.photo !== photo){
+      btn.dataset.photo = photo;
+      btn.innerHTML = photo ? '<img src="' + photo + '" alt="">' :
+        '<span style="font-size:' + catLabelSize(c) + ';">' + escapeHtml(c) + '</span>';
+    }
+    btn.classList.toggle('active', c === currentCat);
+  });
+  positionCatRing(false);
 }
 
-function updateCornerPhoto(){
-  const img = document.getElementById('catCorner');
-  const src = catPhotos[currentCat];
-  if(src){ img.src = src; img.style.display = ''; } else { img.style.display = 'none'; }
+function positionCatRing(animate){
+  const el = document.getElementById('catTabs');
+  const ring = el.querySelector('.cat-ring'), btn = el.querySelector('.cat-btn.active');
+  if(!ring || !btn || !btn.offsetWidth) return;
+  ring.classList.toggle('no-anim', !animate);
+  ring.style.transform = 'translateX(' + (btn.offsetLeft + btn.offsetWidth/2 - ring.offsetWidth/2) + 'px)';
 }
+window.addEventListener('resize', () => positionCatRing(false));
+(function(){
+  const st = document.getElementById('stickyTop');
+  const set = () => document.documentElement.style.setProperty('--stickyH', st.offsetHeight + 'px');
+  if(window.ResizeObserver) new ResizeObserver(set).observe(st); else set();
+})();
 
-function switchCat(cat){
+function switchCat(i){
+  const cat = typeof i === 'number' ? CATS[i] : i;
   if(cat === currentCat) return;
   currentCat = cat;
-  updateCornerPhoto();
+  try{ localStorage.setItem('lastCat', cat); }catch(e){}
+  if(navigator.vibrate) navigator.vibrate(8);
   applyCatFilter();
-  renderCatTabs();
-  renderCurrentView();
+  document.querySelectorAll('#catTabs .cat-btn').forEach(b => b.classList.toggle('active', b.dataset.cat === cat));
+  positionCatRing(true);
+  renderCurrentView(true);
+  const pc = document.getElementById('periodContent');
+  pc.classList.remove('slide-fwd','slide-back','cat-swap');
+  void pc.offsetWidth;
+  pc.classList.add('cat-swap');
+  updateLastSeen();
 }
 
 function generateDateRange(startKey, endKey){
@@ -594,7 +736,7 @@ async function loadWeather(earliestDateKey){
     });
 
     weatherByDate = byDate;
-    renderCurrentView();
+    if(currentView === 'day') renderCurrentView(true);
   }catch(e){
     console.error('Weather load failed (app still works without it):', e);
   }
@@ -810,7 +952,9 @@ function submitStressEvent(){
       return;
     }
     status.textContent = 'Saved.';
-    setTimeout(() => { toggleAddEventForm(); loadData(true); }, 400);
+    showToast('Saved · ' + cat + ' · ' + ({pee:'Pee',poop:'Poop',straining:'Straining',stress:'Stress'}[currentEntryType]));
+    if(navigator.vibrate) navigator.vibrate(12);
+    setTimeout(() => { toggleAddEventForm(); loadData(true); }, 250);
   };
 
   const url = APPS_SCRIPT_URL + '?' + Object.keys(params)
@@ -876,6 +1020,7 @@ function loadData(silent, attempt){
         return {date: dateKeyFromDate(time), time, label: ev.label, rating: ev.rating, cat: ev.cat || ''};
       });
       applyCatFilter();
+      updateLastSeen();
       if(data.logo){
         updateIconsAndManifest(data.logo);
       } else if(data.logoDebug){
@@ -890,7 +1035,7 @@ function loadData(silent, attempt){
       if (todayKey > maxKey) maxKey = todayKey;
 
       const keepKey = (silent && dateList.length) ? dateList[currentDateIdx] : null;
-      const keepView = silent ? currentView : 'day';
+      const keepView = silent ? currentView : 'list';
       const keepAnchor = silent ? monthAnchor : null;
       dateList = generateDateRange(minKey, maxKey);
       currentDateIdx = dateList.indexOf(keepKey || todayKey);
@@ -899,7 +1044,7 @@ function loadData(silent, attempt){
 
       populateDateSelect();
       showState('app');
-      setView(keepView === 'list' ? 'list' : 'day');
+      setView(keepView === 'day' ? 'day' : 'list');
       loadWeather(minKey);
       loadPhotos();
     }catch(e){
@@ -926,7 +1071,7 @@ function loadData(silent, attempt){
   let startX = null, startPos = 0, dragging = false, pid = null;
   sw.addEventListener('pointerdown', e => {
     startX = e.clientX; dragging = false; pid = e.pointerId;
-    startPos = sw.dataset.view === 'list' ? 1 : 0;
+    startPos = sw.dataset.view === 'day' ? 1 : 0;
   });
   sw.addEventListener('pointermove', e => {
     if(startX === null) return;
@@ -951,7 +1096,7 @@ function loadData(silent, attempt){
     const w = pill.offsetWidth;
     const pos = Math.max(0, Math.min(w, startPos * w + dx));
     pill.style.transition = ''; pill.style.transform = '';
-    const target = pos > w/2 ? 'list' : 'day';
+    const target = pos > w/2 ? 'day' : 'list';
     if(target !== currentView) setView(target);
   }
   sw.addEventListener('pointerup', end);
@@ -994,8 +1139,7 @@ function loadPhotos(){
     console.log('Photo diagnostics:', data.photoDebug);
     if(data.logo) updateIconsAndManifest(data.logo);
     renderCatTabs();
-    updateCornerPhoto();
-    const missing = CATS.filter(c => !catPhotos[c]);
+      const missing = CATS.filter(c => !catPhotos[c]);
     el.textContent = missing.length ? 'No photo found for: ' + missing.join(', ') + (data.photoDebug ? ' (' + data.photoDebug.summary + ')' : '') : '';
   };
   script.onerror = () => { done(); el.textContent = 'Could not load photos.'; };
@@ -1099,8 +1243,10 @@ function playPeriodAnimation(){
   vc.classList.add(navDirection >= 0 ? 'slide-fwd' : 'slide-back');
 }
 
-function renderCurrentView(){
+function renderCurrentView(quiet){
   if(!dateList.length) return;
+  const _sc = document.getElementById('chartScroll');
+  const _sl = (quiet && _sc) ? _sc.scrollLeft : null;
   updateTodayButton();
   if(currentView === 'day'){
     document.getElementById('periodLabel').textContent = '';
@@ -1129,7 +1275,8 @@ function renderCurrentView(){
     document.getElementById('statsRow').innerHTML = '';
     renderListView();
   }
-  if(currentView !== 'list') playPeriodAnimation();
+  if(currentView !== 'list' && !quiet) playPeriodAnimation();
+  if(_sl !== null) requestAnimationFrame(() => requestAnimationFrame(() => { const sc = document.getElementById('chartScroll'); if(sc) sc.scrollLeft = _sl; }));
 }
 
 // List view: every straining/pee entry, grouped by day with a controls bar
@@ -1271,10 +1418,12 @@ function jumpToDay(key){
 
 // Pee size 4–6 reads as normal (teal); below 4 it interpolates progressively
 // toward red as it drops to 1 — a smaller spot is the thing worth noticing.
+function isDark(){ return document.documentElement.dataset.theme === 'dark'; }
 function peeColor(v){
-  if(v >= 4) return '#2c6e6b';
+  const good = isDark() ? '#4db6ae' : '#2c6e6b', bad = isDark() ? '#e8785d' : '#a8412a';
+  if(v >= 4) return good;
   const t = Math.max(0, Math.min(1, (4 - v) / 3));
-  return d3.interpolateRgb('#2c6e6b', '#a8412a')(t);
+  return d3.interpolateRgb(good, bad)(t);
 }
 
 function warnStyleFor(level){
@@ -1585,10 +1734,10 @@ function renderDayView(date){
       '<div class="legend">' +
         '<span><span class="swatch" style="background:var(--strain-soft);border:1px solid var(--strain);"></span>Straining</span>' +
         '<span><span class="swatch" style="background:var(--pee);"></span>Pee (height = size)</span>' +
-        '<span><span class="swatch" style="background:#6b4a2f;"></span>Poop (height = amount)</span>' +
+        '<span><span class="swatch" style="background:var(--poop);"></span>Poop (height = amount)</span>' +
         (dayOverlay === 'weather' ? '<span><span class="swatch" style="background:#1c4f73;"></span>Weather</span>' : '') +
         (dayOverlay === 'feeding' ? '<span><span class="swatch" style="background:#c99a3a;"></span>Feeding time</span>' : '') +
-        (dayOverlay === 'stress' ? '<span><span class="swatch" style="background:#7a3b8c;"></span>Stressful event</span>' : '') +
+        (dayOverlay === 'stress' ? '<span><span class="swatch" style="background:var(--stress);"></span>Stressful event</span>' : '') +
       '</div>' +
     '</div>';
 
@@ -1671,7 +1820,7 @@ function drawWeatherArea(g, x, plotWidth, plotHeight, dayStart, weather, date){
     .attr('gradientUnits', 'userSpaceOnUse')
     .attr('x1', 0).attr('y1', 0).attr('x2', 0).attr('y2', plotHeight)
     .selectAll('stop')
-    .data([{o:'0%', c:'rgba(28,79,115,0.55)'}, {o:'100%', c:'rgba(58,111,156,0)'}])
+    .data([{o:'0%', c:(isDark() ? 'rgba(110,170,230,0.5)' : 'rgba(28,79,115,0.55)')}, {o:'100%', c:(isDark() ? 'rgba(110,170,230,0)' : 'rgba(58,111,156,0)')}])
     .enter().append('stop').attr('offset', d=>d.o).attr('stop-color', d=>d.c);
 
   const areaGen = d3.area().curve(d3.curveMonotoneX)
@@ -1681,7 +1830,7 @@ function drawWeatherArea(g, x, plotWidth, plotHeight, dayStart, weather, date){
 
   g.append('path').datum(pts).attr('d', areaGen).attr('fill', 'url(#' + gradId + ')');
   g.append('path').datum(pts).attr('d', lineGen).attr('fill', 'none')
-    .attr('stroke', 'rgba(28,79,115,0.8)').attr('stroke-width', 1.5);
+    .attr('stroke', (isDark() ? 'rgba(130,185,240,0.9)' : 'rgba(28,79,115,0.8)')).attr('stroke-width', 1.5);
 
   return function(t){
     const w = weather.hours[t.getHours()];
@@ -1730,7 +1879,7 @@ function drawStressEventLines(g, x, plotWidth, plotHeight, dayStart, weather, da
   g.selectAll('.eventline').data(dayEvents).enter().append('line')
     .attr('x1', d => x(d.time)).attr('x2', d => x(d.time))
     .attr('y1', 0).attr('y2', plotHeight)
-    .attr('stroke', '#7a3b8c').attr('stroke-width', 2)
+    .attr('stroke', 'var(--stress)').attr('stroke-width', 2)
     .style('opacity', 0.7);
 
   if(!dayEvents.length){
@@ -1805,7 +1954,7 @@ function drawCoreDayChart(containerId, date, drawExtra){
     const NIGHT_OPACITY = 0.09;
     const NIGHT_EDGE_OPACITY = 0.25;
     const TWILIGHT_MIN = 100;
-    const nightColor = c => `rgba(16,22,46,${c})`;
+    const nightColor = c => isDark() ? `rgba(0,0,0,${Math.min(1, c*2.4)})` : `rgba(16,22,46,${c})`;
     const twilightStart = new Date(weather.sunrise.getTime() - TWILIGHT_MIN*60000);
     const twilightEnd = new Date(weather.sunset.getTime() + TWILIGHT_MIN*60000);
 
@@ -1893,7 +2042,7 @@ function drawCoreDayChart(containerId, date, drawExtra){
     .attr('height', d => plotHeight - y(d.rating))
     .attr('rx', 3)
     .attr('fill', 'var(--pee)')
-    .attr('stroke', '#1a3f3d').attr('stroke-width', 0.5);
+    .attr('stroke', 'var(--pee)').attr('stroke-width', 0.5);
 
   g.selectAll('.poop').data(dayPoop).enter().append('rect')
     .attr('class','poop')
@@ -1902,8 +2051,8 @@ function drawCoreDayChart(containerId, date, drawExtra){
     .attr('y', d => poopY(d.rating))
     .attr('height', d => plotHeight - poopY(d.rating))
     .attr('rx', 3)
-    .attr('fill', '#6b4a2f')
-    .attr('stroke', '#3a2a1c').attr('stroke-width', 0.5);
+    .attr('fill', 'var(--poop)')
+    .attr('stroke', 'var(--poop-edge)').attr('stroke-width', 0.5);
 
   if(!dayStraining.length && !dayPee.length && !dayPoop.length){
     g.append('text')
@@ -2162,8 +2311,15 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn, labelsOnly){
   bd.addEventListener('wheel', e => { if(!card.contains(e.target)) e.preventDefault(); }, {passive:false});
 })();
 
-window.addEventListener('resize', () => { if(document.getElementById('addEventBackdrop').style.display === 'none') renderCurrentView(); });
+let _lastW = window.innerWidth;
+window.addEventListener('resize', () => {
+  // iOS fires resize as toolbars collapse while scrolling; only re-layout on a real width change.
+  if(window.innerWidth === _lastW) return;
+  _lastW = window.innerWidth;
+  if(document.getElementById('addEventBackdrop').style.display === 'none') renderCurrentView(true);
+});
 document.addEventListener('keydown', e => { if(e.key==='Escape' && document.getElementById('addEventBackdrop').style.display !== 'none') toggleAddEventForm(); });
+applyTheme();
 initDeviceMode();
 updateIconsAndManifest(generateDefaultIcon());
 loadData();
