@@ -250,7 +250,7 @@
     <div class="wrap">
       <div class="sticky-top" id="stickyTop">
         <header>
-          <h1>Cat Bathroom Tracker</h1>
+          <h1 id="appTitle" onclick="showAbout()" style="cursor:pointer;">Cat Bathroom Tracker</h1>
         </header>
 
         <div id="catTabs" class="cat-tabs" style="display:none;"></div>
@@ -290,6 +290,16 @@
   </div>
 </div>
 
+<div id="aboutBackdrop" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(20,24,30,0.5);align-items:center;justify-content:center;padding:24px;" onclick="if(event.target===this) hideAbout();">
+  <div style="background:var(--card);border-radius:16px;padding:22px 24px;max-width:320px;width:100%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+    <div style="font-weight:700;margin-bottom:6px;">Cat Bathroom Tracker</div>
+    <div id="aboutStamp" style="color:var(--ink-soft);font-size:0.95rem;margin-bottom:16px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="hideAbout()" style="flex:1;padding:12px;border-radius:8px;border:1px solid var(--line);background:var(--card);font-size:16px;color:var(--ink);">Close</button>
+      <button onclick="reloadLatest()" style="flex:1;padding:12px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:16px;font-weight:600;">Reload</button>
+    </div>
+  </div>
+</div>
 <div id="photoStatus" style="text-align:center;font-size:0.7rem;color:var(--ink-soft);padding:0 18px 90px;"></div>
 <div class="tooltip" id="tooltip"></div>
         <div id="addEventBackdrop" class="modal-backdrop" style="display:none;" onclick="if(event.target===this) toggleAddEventForm();">
@@ -396,6 +406,18 @@ let allStraining = [], allPee = [], allPoop = [], allStressEvents = [];
 // different sections of an app — rename these to your actual cats' names.
 // Entries with no Cat value (written before this feature existed) count as
 // belonging to the first cat, for backward compatibility.
+// Stamped each time the file is regenerated, so the popup tells you which
+// version your device is actually running.
+const BUILD_STAMP = '2026-11-01T17:10:53-05:00';
+function showAbout(){
+  const d = new Date(BUILD_STAMP);
+  document.getElementById('aboutStamp').textContent = 'Last updated: ' +
+    d.toLocaleString('en-US', {month:'numeric', day:'numeric', hour:'numeric', minute:'2-digit'}).replace(', ', ', ').replace(/\u202f/g,' ');
+  document.getElementById('aboutBackdrop').style.display = 'flex';
+}
+function hideAbout(){ document.getElementById('aboutBackdrop').style.display = 'none'; }
+function reloadLatest(){ location.href = location.pathname + '?v=' + Date.now(); }
+
 const CATS = ['Puddle', 'Mochi', 'Thumbs', 'Tuna'];
 let currentCat = CATS[0];
 let defaultLogo = '';
@@ -448,6 +470,7 @@ function initDeviceMode(){
 }
 
 function showState(kind, message){
+  if(kind !== 'app') hideAbout();
   const area = document.getElementById('stateArea');
   const app = document.getElementById('appArea');
   const nav = document.getElementById('stickyNav');
@@ -788,7 +811,8 @@ function submitStressEvent(){
 }
 
 let callbackCounter = 0;
-function loadData(silent){
+function loadData(silent, attempt){
+  attempt = attempt || 1;
   if(!silent) showState('loading', 'Connecting…');
   if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_YOUR') === 0){
     showState('error', 'No data source configured yet — add your Apps Script Web App URL in the code.');
@@ -796,12 +820,19 @@ function loadData(silent){
   }
 
   const cbName = 'sheetCallback_' + (++callbackCounter);
-  const timeout = setTimeout(() => {
-    if(window[cbName]){
-      showState('error', 'Timed out reaching the Apps Script endpoint. Check the URL and that it is deployed with access set to "Anyone".');
-      delete window[cbName];
+  function retryOrFail(msg){
+    delete window[cbName];
+    try{ script.remove(); }catch(e){}
+    if(attempt < 3){
+      if(!silent) showState('loading', 'Still connecting… (try ' + (attempt+1) + ' of 3)');
+      loadData(silent, attempt + 1);
+    } else {
+      showState('error', msg + ' <br><br><button onclick="loadData()" style="padding:10px 18px;border-radius:8px;border:1px solid var(--line);background:var(--card);font-size:16px;">Try again</button>');
     }
-  }, 8000);
+  }
+  const timeout = setTimeout(() => {
+    if(window[cbName]) retryOrFail('Timed out reaching the Apps Script endpoint.');
+  }, 20000);
 
   window[cbName] = function(data){
     clearTimeout(timeout);
@@ -833,16 +864,7 @@ function loadData(silent){
       } else if(data.logoDebug){
         console.log('Logo not found — diagnostic info:', data.logoDebug);
       }
-      catPhotos = data.catPhotos || {};
-      console.log('Photo diagnostics:', data.photoDebug, 'cats with photos:', Object.keys(catPhotos));
-      window.photoStatus = data.photoDebug || null;
-          if(CATS.length > 1) renderCatTabs();
-      (function(){
-        const missing = CATS.filter(c => !catPhotos[c]);
-        const el = document.getElementById('photoStatus');
-        el.textContent = missing.length ? 'No photo found for: ' + missing.join(', ') : '';
-        if(missing.length && data.photoDebug) el.textContent += ' (' + data.photoDebug.summary + ')';
-      })();
+      if(CATS.length > 1) renderCatTabs();
 
       const eventDates = [...allStraining.map(s=>s.date), ...allPee.map(p=>p.date), ...allPoop.map(p=>p.date)];
       const todayKey = dateKeyFromDate(new Date());
@@ -862,21 +884,46 @@ function loadData(silent){
       showState('app');
       setView(keepView === 'list' ? 'list' : 'day');
       loadWeather(minKey);
+      loadPhotos();
     }catch(e){
       console.error(e);
       showState('error', 'Could not load data: ' + e.message);
     }
   };
 
-  const url = APPS_SCRIPT_URL + '?callback=' + cbName;
+  const url = APPS_SCRIPT_URL + '?callback=' + cbName + '&_=' + Date.now();
   const script = document.createElement('script');
   script.src = url;
   script.onerror = function(){
     clearTimeout(timeout);
-    delete window[cbName];
-    showState('error', 'Could not reach the Apps Script endpoint. Check the URL and that it is deployed with access set to "Anyone".');
-    script.remove();
+    if(window[cbName]) retryOrFail('Could not reach the Apps Script endpoint.');
   };
+  document.head.appendChild(script);
+}
+
+// Photos are fetched in a second, separate request after the app is already
+// showing, so their size can never slow down or break the main data load.
+let photosLoading = false;
+function loadPhotos(){
+  if(photosLoading) return;
+  photosLoading = true;
+  const cbName = 'photoCallback_' + (++callbackCounter);
+  const el = document.getElementById('photoStatus');
+  const script = document.createElement('script');
+  const done = () => { photosLoading = false; clearTimeout(timeout); delete window[cbName]; script.remove(); };
+  const timeout = setTimeout(() => { if(window[cbName]){ done(); el.textContent = 'Photos timed out (they may be too large).'; } }, 45000);
+  window[cbName] = function(data){
+    done();
+    if(!data || data.error){ el.textContent = 'Photos: ' + (data && data.error || 'error'); return; }
+    catPhotos = data.catPhotos || {};
+    console.log('Photo diagnostics:', data.photoDebug);
+    if(data.logo) updateIconsAndManifest(data.logo);
+    renderCatTabs();
+    const missing = CATS.filter(c => !catPhotos[c]);
+    el.textContent = missing.length ? 'No photo found for: ' + missing.join(', ') + (data.photoDebug ? ' (' + data.photoDebug.summary + ')' : '') : '';
+  };
+  script.onerror = () => { done(); el.textContent = 'Could not load photos.'; };
+  script.src = APPS_SCRIPT_URL + '?action=photos&callback=' + cbName + '&_=' + Date.now();
   document.head.appendChild(script);
 }
 
@@ -1425,12 +1472,23 @@ function attachDragGestures(overlaySelection, onMove, onEnd){
 
 // ---- Day view ----
 
+function dayHeading(key){
+  const [y,m,d] = key.split('-').map(Number);
+  const dt = new Date(y, m-1, d), now = new Date();
+  const diff = Math.round((new Date(y,m-1,d) - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
+  if(diff === 0) return 'Today';
+  if(diff === -1) return 'Yesterday';
+  if(diff === 1) return 'Tomorrow';
+  const mons = ['Jan.','Feb.','Mar.','Apr.','May','Jun.','Jul.','Aug.','Sep.','Oct.','Nov.','Dec.'];
+  return dt.toLocaleDateString('en-US', {weekday:'long'}) + ', ' + mons[m-1] + ' ' + d;
+}
+
 function renderDayView(date){
   const container = document.getElementById('viewContainer');
   const overlayLabels = {none:'None', weather:'Weather', feeding:'Feedings', stress:'Stressful events'};
   const menuBtnLabel = dayOverlay === 'none' ? '⋯' : '⋯ ' + overlayLabels[dayOverlay];
   container.innerHTML =
-    '<div class="chart-card"><h3>Today</h3><div id="dayInlineList"></div></div>' +
+    '<div class="chart-card"><h3>' + dayHeading(date) + '</h3><div id="dayInlineList"></div></div>' +
     '<div class="chart-card">' +
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">' +
         '<h3 style="margin:0;">Straining, Pee, &amp; Poop</h3>' +
