@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Cat bathroom tracker</title>
+<title>Cat Bathroom Tracker</title>
 <meta name="description" content="Cat urinary health tracker: straining, pee frequency and size, weather, feeding times, and stressful events.">
 <meta name="keywords" content="cat, cats, pee, peeing, urination, litter box, straining, urinary, UTI, blockage, health tracker, feeding, weather">
 <link id="faviconLink" rel="icon" href="">
@@ -20,7 +20,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Cat bathroom tracker">
+<meta name="apple-mobile-web-app-title" content="Cat Bathroom Tracker">
 <meta name="theme-color" content="#1e2624">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <style>
@@ -106,7 +106,7 @@
     padding-top:22px; padding-bottom:2px;
   }
   header{margin-bottom:16px;border-bottom:2px solid var(--ink);padding-bottom:12px;}
-  header h1{font-size:1.3rem;margin:0;font-weight:700;letter-spacing:-0.01em;}
+  header h1{text-align:center;font-size:1.3rem;margin:0;font-weight:700;letter-spacing:-0.01em;}
   header .sub{color:var(--ink-soft);font-size:0.85rem;}
 
   /* Period-change animation */
@@ -129,7 +129,12 @@
   .cat-tabs{display:flex;gap:6px;margin-bottom:14px;}
   .cat-tabs button{flex:1 1 0;min-width:0;padding:10px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:10px;border:2px solid var(--line);background:var(--card);color:var(--ink-soft);font-size:0.8rem;font-weight:700;cursor:pointer;}
   .cat-tabs button.active{background:var(--ink);border-color:var(--ink);color:#fff;}
-  .view-tabs{display:flex;gap:4px;margin-bottom:12px;}
+  .view-switch{position:relative;display:flex;margin:0 auto 12px;max-width:260px;background:var(--line);border-radius:999px;padding:3px;}
+  .view-switch .pill{position:absolute;top:3px;bottom:3px;left:3px;width:calc(50% - 3px);background:var(--ink);border-radius:999px;transition:transform .22s cubic-bezier(0.22,0.61,0.36,1);}
+  .view-switch[data-view="list"] .pill{transform:translateX(100%);}
+  .view-switch button{position:relative;flex:1;padding:8px 0;border:none;background:transparent;color:var(--ink-soft);font-size:0.85rem;font-weight:700;cursor:pointer;border-radius:999px;transition:color .2s;}
+  .view-switch button.active{color:#fff;}
+  .view-tabs{display:none;}
   .view-tabs button{flex:1;padding:8px 0;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink-soft);font-size:0.72rem;font-weight:600;cursor:pointer;}
   .view-tabs button.active{background:var(--ink);color:#fff;border-color:var(--ink);}
 
@@ -245,20 +250,15 @@
     <div class="wrap">
       <div class="sticky-top" id="stickyTop">
         <header>
-          <div style="display:flex;align-items:center;gap:10px;">
-            <img id="logoImg" src="" alt="" style="display:none;width:32px;height:32px;border-radius:8px;object-fit:cover;">
-            <h1>Cat bathroom tracker</h1>
-          </div>
+          <h1>Cat Bathroom Tracker</h1>
         </header>
 
         <div id="catTabs" class="cat-tabs" style="display:none;"></div>
 
         <div id="stickyNav" style="display:none;">
-          <div class="view-tabs">
+          <div class="view-switch" id="viewSwitch" data-view="day">
+            <span class="pill"></span>
             <button id="tabDay" onclick="setView('day')">Day</button>
-            <button id="tabWeek" onclick="setView('week')">Week</button>
-            <button id="tabMonth" onclick="setView('month')">Month</button>
-            <button id="tabYear" onclick="setView('year')">Year</button>
             <button id="tabList" onclick="setView('list')">List</button>
           </div>
 
@@ -290,6 +290,7 @@
   </div>
 </div>
 
+<div id="photoStatus" style="text-align:center;font-size:0.7rem;color:var(--ink-soft);padding:0 18px 90px;"></div>
 <div class="tooltip" id="tooltip"></div>
         <div id="addEventBackdrop" class="modal-backdrop" style="display:none;" onclick="if(event.target===this) toggleAddEventForm();">
   <div id="addEventForm" class="modal-card">
@@ -396,11 +397,10 @@ let allStraining = [], allPee = [], allPoop = [], allStressEvents = [];
 // Entries with no Cat value (written before this feature existed) count as
 // belonging to the first cat, for backward compatibility.
 const CATS = ['Puddle', 'Mochi', 'Thumbs', 'Tuna'];
-const ALL_CATS = '__all__';
 let currentCat = CATS[0];
 let defaultLogo = '';
 function belongsToCurrentCat(entry){
-  return currentCat === ALL_CATS || (entry.cat || CATS[0]) === currentCat;
+  return (entry.cat || CATS[0]) === currentCat;
 }
 // Re-derives the working arrays every render function already reads, so
 // switching cats doesn't require touching any rendering code.
@@ -477,25 +477,17 @@ let catPhotos = {}; // catName -> data URI, from the sheet's Config tab
 
 function renderCatTabs(){
   const el = document.getElementById('catTabs');
-  el.innerHTML = CATS.concat([ALL_CATS]).map(c => {
-    if(c === ALL_CATS) return `<button class="${currentCat === ALL_CATS ? 'active' : ''}" onclick="switchCat('${ALL_CATS}')">All</button>`;
+  el.innerHTML = CATS.map(c => {
     const photo = catPhotos[c]
-      ? `<img src="${catPhotos[c]}" alt="" style="width:18px;height:18px;border-radius:50%;object-fit:cover;vertical-align:-5px;margin-right:4px;">`
+      ? `<img src="${catPhotos[c]}" alt="" style="width:24px;height:24px;border-radius:50%;object-fit:cover;vertical-align:-7px;margin-right:4px;">`
       : '';
     return `<button class="${c === currentCat ? 'active' : ''}" onclick="switchCat('${c.replace(/'/g,"\\'")}')">${photo}${escapeHtml(c)}</button>`;
   }).join('');
 }
 
-function updateHeaderPhoto(){
-  const img = document.getElementById('logoImg');
-  const src = catPhotos[currentCat] || defaultLogo;
-  if(src){ img.src = src; img.style.display = ''; } else { img.style.display = 'none'; }
-}
-
 function switchCat(cat){
   if(cat === currentCat) return;
   currentCat = cat;
-  updateHeaderPhoto();
   applyCatFilter();
   renderCatTabs();
   renderCurrentView();
@@ -575,11 +567,10 @@ function updateIconsAndManifest(logoDataUri){
   document.getElementById('faviconLink').href = logoDataUri;
   document.getElementById('appleTouchIcon').href = logoDataUri;
   defaultLogo = logoDataUri;
-  updateHeaderPhoto();
 
   const manifest = {
-    name: "Cat bathroom tracker",
-    short_name: "Cat bathroom tracker",
+    name: "Cat Bathroom Tracker",
+    short_name: "Cat Bathroom Tracker",
     start_url: '.',
     display: 'standalone',
     background_color: '#eef1ee',
@@ -700,7 +691,7 @@ function toggleAddEventForm(){
       catWrap.style.display = 'block';
       const sel = document.getElementById('entryCat');
       sel.innerHTML = CATS.map(c => '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>').join('');
-      sel.value = currentCat === ALL_CATS ? CATS[0] : currentCat;
+      sel.value = currentCat;
     } else {
       catWrap.style.display = 'none';
     }
@@ -843,8 +834,15 @@ function loadData(silent){
         console.log('Logo not found — diagnostic info:', data.logoDebug);
       }
       catPhotos = data.catPhotos || {};
-      updateHeaderPhoto();
-      if(CATS.length > 1) renderCatTabs();
+      console.log('Photo diagnostics:', data.photoDebug, 'cats with photos:', Object.keys(catPhotos));
+      window.photoStatus = data.photoDebug || null;
+          if(CATS.length > 1) renderCatTabs();
+      (function(){
+        const missing = CATS.filter(c => !catPhotos[c]);
+        const el = document.getElementById('photoStatus');
+        el.textContent = missing.length ? 'No photo found for: ' + missing.join(', ') : '';
+        if(missing.length && data.photoDebug) el.textContent += ' (' + data.photoDebug.summary + ')';
+      })();
 
       const eventDates = [...allStraining.map(s=>s.date), ...allPee.map(p=>p.date), ...allPoop.map(p=>p.date)];
       const todayKey = dateKeyFromDate(new Date());
@@ -862,7 +860,7 @@ function loadData(silent){
 
       populateDateSelect();
       showState('app');
-      setView(keepView);
+      setView(keepView === 'list' ? 'list' : 'day');
       loadWeather(minKey);
     }catch(e){
       console.error(e);
@@ -922,7 +920,8 @@ let navDirection = 1;
 
 function setView(view){
   currentView = view;
-  ['tabDay','tabWeek','tabMonth','tabYear','tabList'].forEach(id => {
+  document.getElementById('viewSwitch').dataset.view = view;
+  ['tabDay','tabList'].forEach(id => {
     document.getElementById(id).classList.toggle('active', id === 'tab' + view.charAt(0).toUpperCase() + view.slice(1));
   });
   document.getElementById('dateSelect').style.display = view === 'day' ? '' : 'none';
@@ -1020,24 +1019,11 @@ function renderListView(){
   container.innerHTML =
     '<div class="chart-card">' +
       '<div class="list-controls">' +
-        '<select id="listRangeSel" onchange="onListControlChange()">' +
-          '<option value="all">All time</option>' +
-          '<option value="week">This week</option>' +
-          '<option value="month">This month</option>' +
-          '<option value="year">This year</option>' +
-        '</select>' +
-        '<select id="listTypeSel" onchange="onListControlChange()">' +
-          '<option value="all">All entries</option>' +
-          '<option value="straining">Straining only</option>' +
-          '<option value="pee">Pee only</option>' +
-          '<option value="poop">Poop only</option>' +
-        '</select>' +
+        '<h3 style="margin:0;flex:1;">All entries</h3>' +
         '<button id="listSortBtn" class="list-sort-toggle" onclick="toggleListSort()"></button>' +
       '</div>' +
       '<div id="listBody"></div>' +
     '</div>';
-  document.getElementById('listRangeSel').value = listRange;
-  document.getElementById('listTypeSel').value = listType;
   updateSortButtonLabel();
   renderListBody();
 }
@@ -1052,11 +1038,6 @@ function toggleListSort(){
   renderListBody();
 }
 
-function onListControlChange(){
-  listRange = document.getElementById('listRangeSel').value;
-  listType = document.getElementById('listTypeSel').value;
-  renderListBody();
-}
 
 function collectRows(lo, hi, type){
   let rows = [];
@@ -1080,7 +1061,7 @@ function collectRows(lo, hi, type){
 
 function buildEntryTable(rows, sortDir){
   rows.sort((a,b) => sortDir === 'desc' ? b.time - a.time : a.time - b.time);
-  const showCat = currentCat === ALL_CATS;
+  const showCat = false;
   const cols = showCat ? 5 : 4;
   let html = '<table class="list-table"><thead><tr><th>Time</th>' + (showCat ? '<th>Cat</th>' : '') +
     '<th>Type</th><th>Detail</th><th>Note</th></tr></thead><tbody>';
@@ -1099,13 +1080,7 @@ function buildEntryTable(rows, sortDir){
 }
 
 function renderListBody(){
-  const today = new Date();
-  const todayKey = dateKeyFromDate(today);
-  let lo = null;
-  if(listRange === 'week') lo = weekDates(today)[0];
-  else if(listRange === 'month') lo = todayKey.slice(0,8) + '01';
-  else if(listRange === 'year') lo = todayKey.slice(0,4) + '-01-01';
-  const rows = collectRows(lo, lo ? todayKey : null, listType);
+  const rows = collectRows(null, null, 'all');
   const body = document.getElementById('listBody');
   body.innerHTML = rows.length ? buildEntryTable(rows, listSort) : '<div class="empty-msg">No entries in this range.</div>';
 }
@@ -1518,7 +1493,6 @@ function renderDayInlineList(date){
     cat: p.cat || CATS[0], time: p.time, type: '💩 Poop', detail: poopAmountLabel(p.rating), note: p.note||''
   }));
   rows.sort((a,b) => a.time - b.time);
-  if(currentCat === ALL_CATS) rows.forEach(r => r.note = ((r.cat ? r.cat + (r.note ? ' — ' : '') : '')) + r.note);
 
   const el = document.getElementById('dayInlineList');
   if(!rows.length){
@@ -2017,6 +1991,7 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn, labelsOnly){
 
   function onDown(e){
     if(e.target.closest('.chart-canvas')) return;
+    if(currentView !== 'day') return;
     if(e.target.closest('.sticky-top')) return; // header buttons / cat tabs / nav never swipe days
     if(e.target.closest('#addEventBackdrop')) return; // modal is open — nothing behind it should react
     startX = e.clientX; startY = e.clientY; tracking = true;
