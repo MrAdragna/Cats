@@ -105,7 +105,7 @@
     background:var(--paper);
     padding-top:22px; padding-bottom:2px;
   }
-  header{margin-bottom:16px;border-bottom:2px solid var(--ink);padding-bottom:12px;}
+  header{position:relative;margin-bottom:16px;border-bottom:2px solid var(--ink);padding-bottom:12px;}
   header h1{text-align:center;font-size:1.3rem;margin:0;font-weight:700;letter-spacing:-0.01em;}
   header .sub{color:var(--ink-soft);font-size:0.85rem;}
 
@@ -250,6 +250,7 @@
     <div class="wrap">
       <div class="sticky-top" id="stickyTop">
         <header>
+          <img id="catCorner" src="" alt="" style="display:none;position:absolute;right:0;top:50%;transform:translateY(-62%);width:40px;height:40px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 2px var(--paper),0 0 0 3px var(--line);">
           <h1 id="appTitle" onclick="showAbout()" style="cursor:pointer;">Cat Bathroom Tracker</h1>
         </header>
 
@@ -290,10 +291,15 @@
   </div>
 </div>
 
+<div id="updateBanner" style="display:none;position:fixed;z-index:85;left:50%;transform:translateX(-50%);top:max(10px,env(safe-area-inset-top));align-items:center;gap:10px;background:var(--ink);color:#fff;padding:8px 8px 8px 16px;border-radius:999px;font-size:0.85rem;box-shadow:0 6px 20px rgba(0,0,0,0.3);white-space:nowrap;">
+  New version available
+  <button onclick="reloadLatest()" style="border:none;border-radius:999px;padding:7px 14px;background:#fff;color:var(--ink);font-weight:700;font-size:0.85rem;cursor:pointer;">Reload</button>
+</div>
 <div id="aboutBackdrop" style="display:none;position:fixed;inset:0;z-index:90;background:rgba(20,24,30,0.5);align-items:center;justify-content:center;padding:24px;" onclick="if(event.target===this) hideAbout();">
   <div style="background:var(--card);border-radius:16px;padding:22px 24px;max-width:320px;width:100%;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
     <div style="font-weight:700;margin-bottom:6px;">Cat Bathroom Tracker</div>
-    <div id="aboutStamp" style="color:var(--ink-soft);font-size:0.95rem;margin-bottom:16px;"></div>
+    <div id="aboutStamp" style="color:var(--ink-soft);font-size:0.95rem;margin-bottom:6px;"></div>
+    <div id="aboutRemote" style="color:var(--ink-soft);font-size:0.8rem;margin-bottom:16px;"></div>
     <div style="display:flex;gap:8px;">
       <button onclick="hideAbout()" style="flex:1;padding:12px;border-radius:8px;border:1px solid var(--line);background:var(--card);font-size:16px;color:var(--ink);">Close</button>
       <button onclick="reloadLatest()" style="flex:1;padding:12px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:16px;font-weight:600;">Reload</button>
@@ -408,11 +414,17 @@ let allStraining = [], allPee = [], allPoop = [], allStressEvents = [];
 // belonging to the first cat, for backward compatibility.
 // Stamped each time the file is regenerated, so the popup tells you which
 // version your device is actually running.
-const BUILD_STAMP = '2026-11-01T17:10:53-05:00';
+const BUILD_STAMP = '2026-11-01T17:19:08-05:00';
 function showAbout(){
   const d = new Date(BUILD_STAMP);
   document.getElementById('aboutStamp').textContent = 'Last updated: ' +
     d.toLocaleString('en-US', {month:'numeric', day:'numeric', hour:'numeric', minute:'2-digit'}).replace(', ', ', ').replace(/\u202f/g,' ');
+  document.getElementById('aboutRemote').textContent = 'Checking for updates…';
+  checkForUpdate().then(() => {
+    document.getElementById('aboutRemote').textContent = remoteStamp
+      ? (new Date(remoteStamp) > new Date(BUILD_STAMP) ? 'A newer version is live — tap Reload.' : 'You have the latest version.')
+      : 'Couldn\'t check (offline?).';
+  });
   document.getElementById('aboutBackdrop').style.display = 'flex';
 }
 function hideAbout(){ document.getElementById('aboutBackdrop').style.display = 'none'; }
@@ -501,16 +513,21 @@ let catPhotos = {}; // catName -> data URI, from the sheet's Config tab
 function renderCatTabs(){
   const el = document.getElementById('catTabs');
   el.innerHTML = CATS.map(c => {
-    const photo = catPhotos[c]
-      ? `<img src="${catPhotos[c]}" alt="" style="width:24px;height:24px;border-radius:50%;object-fit:cover;vertical-align:-7px;margin-right:4px;">`
-      : '';
+    const photo = '';
     return `<button class="${c === currentCat ? 'active' : ''}" onclick="switchCat('${c.replace(/'/g,"\\'")}')">${photo}${escapeHtml(c)}</button>`;
   }).join('');
+}
+
+function updateCornerPhoto(){
+  const img = document.getElementById('catCorner');
+  const src = catPhotos[currentCat];
+  if(src){ img.src = src; img.style.display = ''; } else { img.style.display = 'none'; }
 }
 
 function switchCat(cat){
   if(cat === currentCat) return;
   currentCat = cat;
+  updateCornerPhoto();
   applyCatFilter();
   renderCatTabs();
   renderCurrentView();
@@ -901,6 +918,64 @@ function loadData(silent, attempt){
   document.head.appendChild(script);
 }
 
+// Day/List pill: drag (or flick) the pill toward the other option to select it.
+(function(){
+  const sw = document.getElementById('viewSwitch');
+  const pill = sw.querySelector('.pill');
+  sw.style.touchAction = 'none';
+  let startX = null, startPos = 0, dragging = false, pid = null;
+  sw.addEventListener('pointerdown', e => {
+    startX = e.clientX; dragging = false; pid = e.pointerId;
+    startPos = sw.dataset.view === 'list' ? 1 : 0;
+  });
+  sw.addEventListener('pointermove', e => {
+    if(startX === null) return;
+    const dx = e.clientX - startX;
+    if(!dragging && Math.abs(dx) > 8){
+      dragging = true;
+      try{ sw.setPointerCapture(pid); }catch(_){}
+      pill.style.transition = 'none';
+    }
+    if(dragging){
+      const w = pill.offsetWidth;
+      const pos = Math.max(0, Math.min(w, startPos * w + dx));
+      pill.style.transform = 'translateX(' + pos + 'px)';
+    }
+  });
+  function end(e){
+    if(startX === null) return;
+    const dx = e.clientX - startX;
+    const was = dragging;
+    startX = null; dragging = false;
+    if(!was) return;               // plain tap: the buttons' own click handles it
+    const w = pill.offsetWidth;
+    const pos = Math.max(0, Math.min(w, startPos * w + dx));
+    pill.style.transition = ''; pill.style.transform = '';
+    const target = pos > w/2 ? 'list' : 'day';
+    if(target !== currentView) setView(target);
+  }
+  sw.addEventListener('pointerup', end);
+  sw.addEventListener('pointercancel', end);
+})();
+
+// Checks (when the app is opened/returned to, and every 2 minutes) whether the
+// hosted file has a newer BUILD_STAMP than the one running, and offers a reload.
+let remoteStamp = null;
+async function checkForUpdate(){
+  try{
+    const res = await fetch(location.pathname + '?_=' + Date.now(), {cache:'no-store'});
+    if(!res.ok) return;
+    const m = (await res.text()).match(/const BUILD_STAMP = '([^']+)'/);
+    if(!m) return;
+    remoteStamp = m[1];
+    document.getElementById('updateBanner').style.display =
+      new Date(remoteStamp) > new Date(BUILD_STAMP) ? 'flex' : 'none';
+  }catch(e){ /* offline or file:// — ignore */ }
+}
+document.addEventListener('visibilitychange', () => { if(!document.hidden) checkForUpdate(); });
+setInterval(checkForUpdate, 120000);
+setTimeout(checkForUpdate, 3000);
+
 // Photos are fetched in a second, separate request after the app is already
 // showing, so their size can never slow down or break the main data load.
 let photosLoading = false;
@@ -919,6 +994,7 @@ function loadPhotos(){
     console.log('Photo diagnostics:', data.photoDebug);
     if(data.logo) updateIconsAndManifest(data.logo);
     renderCatTabs();
+    updateCornerPhoto();
     const missing = CATS.filter(c => !catPhotos[c]);
     el.textContent = missing.length ? 'No photo found for: ' + missing.join(', ') + (data.photoDebug ? ' (' + data.photoDebug.summary + ')' : '') : '';
   };
