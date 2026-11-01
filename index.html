@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Puddle's Pee</title>
 <meta name="description" content="Cat urinary health tracker: straining, pee frequency and size, weather, feeding times, and stressful events.">
 <meta name="keywords" content="cat, cats, pee, peeing, urination, litter box, straining, urinary, UTI, blockage, health tracker, feeding, weather">
@@ -126,8 +126,8 @@
   .spinner{width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;margin:0 auto 14px;animation:spin 0.8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
 
-  .cat-tabs{display:flex;gap:8px;margin-bottom:14px;}
-  .cat-tabs button{flex:1;padding:11px 0;border-radius:10px;border:2px solid var(--line);background:var(--card);color:var(--ink-soft);font-size:0.92rem;font-weight:700;cursor:pointer;}
+  .cat-tabs{display:flex;gap:6px;margin-bottom:14px;}
+  .cat-tabs button{flex:1 1 0;min-width:0;padding:10px 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-radius:10px;border:2px solid var(--line);background:var(--card);color:var(--ink-soft);font-size:0.8rem;font-weight:700;cursor:pointer;}
   .cat-tabs button.active{background:var(--ink);border-color:var(--ink);color:#fff;}
   .view-tabs{display:flex;gap:4px;margin-bottom:12px;}
   .view-tabs button{flex:1;padding:8px 0;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink-soft);font-size:0.72rem;font-weight:600;cursor:pointer;}
@@ -159,7 +159,6 @@
   .overlay-menu button.active{background:var(--accent);color:#fff;font-weight:600;}
   .overlay-menu button:hover:not(.active){background:var(--paper);}
   .chart-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;border-radius:8px;}
-  .scroll-hint{text-align:center;font-size:0.7rem;color:var(--ink-soft);opacity:0.6;margin-bottom:4px;}
   .chart-viewport{position:relative;}
   .day-marker-line{
     position:absolute; left:50%; top:0; bottom:0; width:2px;
@@ -217,6 +216,16 @@
     max-height:88vh; overflow-y:auto;
     box-shadow:0 -8px 30px rgba(0,0,0,0.3);
   }
+.modal-backdrop{touch-action:none;overscroll-behavior:contain;}
+  .modal-card{touch-action:manipulation;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;max-height:88dvh;}
+  .modal-card input,.modal-card select,.modal-card button{touch-action:manipulation;font-size:16px;}
+  .modal-card input[type=datetime-local]{min-height:44px;}
+  .size-row{display:flex;gap:6px;margin-top:4px;}
+  .size-row button{flex:1;min-height:46px;border-radius:8px;border:1px solid var(--line);background:var(--card);font-weight:700;cursor:pointer;color:var(--ink);}
+  .size-row button.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .quick-row{display:flex;gap:6px;margin-top:6px;}
+  .quick-row button{flex:1;padding:8px 0;border-radius:999px;border:1px solid var(--line);background:var(--card);font-size:14px;cursor:pointer;color:var(--ink);}
+  body.modal-open{overflow:hidden;}
   .modal-handle{width:36px;height:4px;background:var(--line);border-radius:2px;margin:4px auto 12px;}
 
   .axis text{fill:var(--ink-soft);font-size:11px;}
@@ -271,71 +280,10 @@
       </div>
 
       <div id="appArea" style="display:none;">
-        <div id="addEventBackdrop" class="modal-backdrop" style="display:none;" onclick="if(event.target===this) toggleAddEventForm();">
-          <div id="addEventForm" class="modal-card">
-            <div class="modal-handle"></div>
-            <div style="display:flex;flex-direction:column;gap:10px;">
-              <div style="display:flex;gap:6px;flex-wrap:wrap;">
-                <button id="typePee" class="entry-type-btn" onclick="setEntryType('pee')" style="flex:1;min-width:70px;">💧 Pee</button>
-                <button id="typeStraining" class="entry-type-btn" onclick="setEntryType('straining')" style="flex:1;min-width:70px;">🚽 Strain</button>
-                <button id="typePoop" class="entry-type-btn" onclick="setEntryType('poop')" style="flex:1;min-width:70px;">💩 Poop</button>
-                <button id="typeStress" class="entry-type-btn" onclick="setEntryType('stress')" style="flex:1;min-width:70px;">⚡ Stress</button>
-              </div>
-
-              <div id="catSelectWrap" style="display:none;">
-                <label style="font-size:0.78rem;color:var(--ink-soft);">Cat
-                  <select id="entryCat" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:4px;font-size:16px;"></select>
-                </label>
-              </div>
-
-              <label id="whenLabel" style="font-size:0.78rem;color:var(--ink-soft);">When?
-                <input id="eventTime" type="datetime-local" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:4px;font-size:16px;">
-              </label>
-
-              <div id="fieldEndTime" style="display:none;">
-                <label style="font-size:0.78rem;color:var(--ink-soft);">End time (duration is calculated for you)
-                  <input id="strainEndTime" type="datetime-local" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:4px;font-size:16px;">
-                </label>
-                <div id="strainDurationPreview" style="font-size:0.78rem;color:var(--ink-soft);margin-top:4px;"></div>
-              </div>
-
-              <div id="fieldPeeRating" style="display:none;">
-                <label style="font-size:0.78rem;color:var(--ink-soft);">Size (1–6)</label>
-                <input id="peeRating" type="range" min="1" max="6" value="3" style="width:100%;">
-                <div style="text-align:center;font-weight:700;" id="peeRatingVal">3</div>
-              </div>
-
-              <div id="fieldPoopRating" style="display:none;">
-                <label style="font-size:0.78rem;color:var(--ink-soft);">Amount</label>
-                <div style="display:flex;gap:6px;margin-top:4px;">
-                  <button type="button" id="poopAmountLow" class="entry-type-btn" onclick="setPoopAmount(1)" style="flex:1;">Barely any</button>
-                  <button type="button" id="poopAmountHigh" class="entry-type-btn" onclick="setPoopAmount(2)" style="flex:1;">Good amount</button>
-                </div>
-              </div>
-
-              <div id="fieldStressRating" style="display:none;">
-                <label style="font-size:0.78rem;color:var(--ink-soft);">Stress/noise level (1–6)</label>
-                <input id="stressRating" type="range" min="1" max="6" value="3" style="width:100%;">
-                <div style="text-align:center;font-weight:700;" id="stressRatingVal">3</div>
-              </div>
-
-              <label style="font-size:0.78rem;color:var(--ink-soft);" id="labelNoteWrap">
-                <span id="noteLabelText">Note (optional)</span>
-                <input id="eventLabel" type="text" placeholder="Garbage truck, parade, fireworks…" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:4px;font-size:16px;">
-              </label>
-
-              <div style="display:flex;gap:8px;">
-                <button onclick="submitStressEvent()" style="flex:1;padding:10px;border-radius:7px;border:none;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;">Save</button>
-                <button onclick="toggleAddEventForm()" style="flex:1;padding:10px;border-radius:7px;border:1px solid var(--line);background:var(--card);cursor:pointer;">Cancel</button>
-              </div>
-              <div id="eventFormStatus" style="font-size:0.76rem;color:var(--ink-soft);"></div>
-            </div>
-          </div>
-        </div>
 
         <div id="periodContent">
-          <div class="stats" id="statsRow"></div>
           <div id="viewContainer"></div>
+          <div class="stats" id="statsRow" style="margin-top:14px;"></div>
         </div>
       </div>
     </div>
@@ -343,6 +291,72 @@
 </div>
 
 <div class="tooltip" id="tooltip"></div>
+        <div id="addEventBackdrop" class="modal-backdrop" style="display:none;" onclick="if(event.target===this) toggleAddEventForm();">
+  <div id="addEventForm" class="modal-card">
+    <div class="modal-handle"></div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button id="typePee" class="entry-type-btn" onclick="setEntryType('pee')" style="flex:1;min-width:70px;">💧 Pee</button>
+        <button id="typeStraining" class="entry-type-btn" onclick="setEntryType('straining')" style="flex:1;min-width:70px;">🚽 Strain</button>
+        <button id="typePoop" class="entry-type-btn" onclick="setEntryType('poop')" style="flex:1;min-width:70px;">💩 Poop</button>
+        <button id="typeStress" class="entry-type-btn" onclick="setEntryType('stress')" style="flex:1;min-width:70px;">⚡ Stress</button>
+      </div>
+
+      <div id="catSelectWrap" style="display:none;">
+        <label style="font-size:0.78rem;color:var(--ink-soft);">Cat
+          <select id="entryCat" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:4px;font-size:16px;"></select>
+        </label>
+      </div>
+
+      <label id="whenLabel" style="font-size:0.78rem;color:var(--ink-soft);">When?
+        <input id="eventTime" type="datetime-local" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:4px;font-size:16px;">
+      </label>
+      <div class="quick-row">
+        <button type="button" onclick="quickTime(0)">Now</button>
+        <button type="button" onclick="quickTime(-15)">−15m</button>
+        <button type="button" onclick="quickTime(-60)">−1h</button>
+        <button type="button" onclick="quickTime(-180)">−3h</button>
+      </div>
+
+      <div id="fieldEndTime" style="display:none;">
+        <label style="font-size:0.78rem;color:var(--ink-soft);">End time (duration is calculated for you)
+          <input id="strainEndTime" type="datetime-local" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:4px;font-size:16px;">
+        </label>
+        <div id="strainDurationPreview" style="font-size:0.78rem;color:var(--ink-soft);margin-top:4px;"></div>
+      </div>
+
+      <div id="fieldPeeRating" style="display:none;">
+        <label style="font-size:0.78rem;color:var(--ink-soft);">Size (1–6)</label>
+        <div class="size-row" id="peeSizeRow"></div>
+      </div>
+
+      <div id="fieldPoopRating" style="display:none;">
+        <label style="font-size:0.78rem;color:var(--ink-soft);">Amount</label>
+        <div style="display:flex;gap:6px;margin-top:4px;">
+          <button type="button" id="poopAmountLow" class="entry-type-btn" onclick="setPoopAmount(1)" style="flex:1;">Barely any</button>
+          <button type="button" id="poopAmountHigh" class="entry-type-btn" onclick="setPoopAmount(2)" style="flex:1;">Good amount</button>
+        </div>
+      </div>
+
+      <div id="fieldStressRating" style="display:none;">
+        <label style="font-size:0.78rem;color:var(--ink-soft);">Stress/noise level (1–6)</label>
+        <div class="size-row" id="stressSizeRow"></div>
+      </div>
+
+      <label style="font-size:0.78rem;color:var(--ink-soft);" id="labelNoteWrap">
+        <span id="noteLabelText">Note (optional)</span>
+        <input id="eventLabel" type="text" placeholder="Garbage truck, parade, fireworks…" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:7px;margin-top:4px;font-size:16px;">
+      </label>
+
+      <div style="display:flex;gap:8px;">
+        <button onclick="toggleAddEventForm()" style="flex:1;padding:13px;border-radius:8px;border:1px solid var(--line);background:var(--card);cursor:pointer;color:var(--ink);">Cancel</button>
+        <button id="saveEntryBtn" onclick="submitStressEvent()" style="flex:1;padding:13px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;">Save</button>
+      </div>
+      <div id="eventFormStatus" style="font-size:0.76rem;color:var(--ink-soft);"></div>
+    </div>
+  </div>
+</div>
+
 <button id="fabAdd" class="fab-add" onclick="toggleAddEventForm()" aria-label="Add entry" style="display:none;">+</button>
 
 <script>
@@ -381,7 +395,7 @@ let allStraining = [], allPee = [], allPoop = [], allStressEvents = [];
 // different sections of an app — rename these to your actual cats' names.
 // Entries with no Cat value (written before this feature existed) count as
 // belonging to the first cat, for backward compatibility.
-const CATS = ['Puddle', 'Mochi'];
+const CATS = ['Puddle', 'Mochi', 'Thumbs', 'Tuna'];
 let currentCat = CATS[0];
 function belongsToCurrentCat(entry){
   return (entry.cat || CATS[0]) === currentCat;
@@ -463,7 +477,7 @@ function renderCatTabs(){
   const el = document.getElementById('catTabs');
   el.innerHTML = CATS.map(c => {
     const photo = catPhotos[c]
-      ? `<img src="${catPhotos[c]}" alt="" style="width:22px;height:22px;border-radius:50%;object-fit:cover;vertical-align:-6px;margin-right:6px;">`
+      ? `<img src="${catPhotos[c]}" alt="" style="width:18px;height:18px;border-radius:50%;object-fit:cover;vertical-align:-5px;margin-right:4px;">`
       : '';
     return `<button class="${c === currentCat ? 'active' : ''}" onclick="switchCat('${c.replace(/'/g,"\\'")}')">${photo}${escapeHtml(c)}</button>`;
   }).join('');
@@ -591,7 +605,7 @@ function generateDefaultIcon(){
 let currentEntryType = 'pee';
 
 function setEntryType(type){
-  currentEntryType = type;
+  currentEntryType = type; lastEntryType = type;
   ['typePee','typeStraining','typePoop','typeStress'].forEach(id => {
     document.getElementById(id).classList.toggle('active',
       id === 'type' + type.charAt(0).toUpperCase() + type.slice(1));
@@ -616,18 +630,60 @@ function updateDurationPreview(){
   preview.textContent = mins > 0 ? 'Duration: ' + mins + ' min' : 'End time must be after start time';
 }
 
+let lastEntryType = 'pee';
+function buildSizeRows(){
+  ['peeSizeRow','stressSizeRow'].forEach(id => {
+    const row = document.getElementById(id);
+    if(row.children.length) return;
+    for(let i=1;i<=6;i++){
+      const b = document.createElement('button');
+      b.type='button'; b.textContent=i; b.dataset.v=i;
+      b.onclick = () => setSize(id, i);
+      row.appendChild(b);
+    }
+  });
+}
+let sizeValues = {peeSizeRow:3, stressSizeRow:3};
+function setSize(id, v){
+  sizeValues[id] = v;
+  document.querySelectorAll('#'+id+' button').forEach(b => b.classList.toggle('active', Number(b.dataset.v)===v));
+}
+function quickTime(minOffset){
+  const d = new Date(Date.now() + minOffset*60000);
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  const str = d.toISOString().slice(0,16);
+  document.getElementById('eventTime').value = str;
+  if(document.getElementById('strainEndTime').value < str) document.getElementById('strainEndTime').value = str;
+  updateDurationPreview();
+}
+function setBackgroundLocked(locked){
+  ['.wrap'].forEach(sel => {
+    const el = document.querySelector(sel);
+    if(!el) return;
+    if(locked){ el.setAttribute('inert',''); el.setAttribute('aria-hidden','true'); el.style.pointerEvents='none'; }
+    else { el.removeAttribute('inert'); el.removeAttribute('aria-hidden'); el.style.pointerEvents=''; }
+  });
+  const fab = document.getElementById('fabAdd');
+  fab.style.pointerEvents = locked ? 'none' : '';
+  document.body.classList.toggle('modal-open', locked);
+  const frame = document.getElementById('deviceFrame');
+  if(frame) frame.style.overflowY = locked ? 'hidden' : '';
+}
+
 function toggleAddEventForm(){
   const backdrop = document.getElementById('addEventBackdrop');
   const showing = backdrop.style.display !== 'none';
   backdrop.style.display = showing ? 'none' : 'flex';
+  setBackgroundLocked(!showing);
+  try{ hideTooltip(); }catch(e){}
   if(!showing){
+    buildSizeRows();
     document.getElementById('eventFormStatus').textContent = '';
     document.getElementById('eventLabel').value = '';
-    document.getElementById('peeRating').value = 3;
-    document.getElementById('peeRatingVal').textContent = '3';
+    setSize('peeSizeRow',3); setSize('stressSizeRow',3);
     setPoopAmount(2);
-    document.getElementById('stressRating').value = 3;
-    document.getElementById('stressRatingVal').textContent = '3';
+    document.getElementById('saveEntryBtn').disabled = false;
+    document.getElementById('addEventForm').scrollTop = 0;
 
     const catWrap = document.getElementById('catSelectWrap');
     if(CATS.length > 1){
@@ -639,11 +695,8 @@ function toggleAddEventForm(){
       catWrap.style.display = 'none';
     }
 
-    setEntryType('pee');
-    const now = new Date();
-    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    document.getElementById('eventTime').value = now.toISOString().slice(0,16);
-    document.getElementById('strainEndTime').value = now.toISOString().slice(0,16);
+    setEntryType(lastEntryType);
+    quickTime(0);
   }
 }
 
@@ -658,8 +711,6 @@ function poopAmountLabel(rating){
 }
 
 document.addEventListener('input', function(e){
-  if(e.target.id === 'peeRating') document.getElementById('peeRatingVal').textContent = e.target.value;
-  if(e.target.id === 'stressRating') document.getElementById('stressRatingVal').textContent = e.target.value;
   if(e.target.id === 'eventTime' || e.target.id === 'strainEndTime') updateDurationPreview();
 });
 
@@ -676,7 +727,7 @@ function submitStressEvent(){
 
   const params = { action: 'addEntry', entryType: currentEntryType, timestamp: isoTime, cat: cat };
   if(currentEntryType === 'pee'){
-    params.rating = document.getElementById('peeRating').value;
+    params.rating = sizeValues.peeSizeRow;
     params.note = note;
   } else if(currentEntryType === 'poop'){
     params.rating = poopAmountValue;
@@ -697,13 +748,16 @@ function submitStressEvent(){
       return;
     }
     params.label = note;
-    params.rating = document.getElementById('stressRating').value;
+    params.rating = sizeValues.stressSizeRow;
   }
 
+  const saveBtn = document.getElementById('saveEntryBtn');
+  if(saveBtn.disabled) return;
+  saveBtn.disabled = true;
   status.textContent = 'Saving…';
   const cbName = 'addEventCallback_' + (++callbackCounter);
   const timeout = setTimeout(() => {
-    if(window[cbName]){ status.textContent = 'Timed out saving. Try again.'; delete window[cbName]; }
+    if(window[cbName]){ status.textContent = 'Timed out saving. Try again.'; saveBtn.disabled = false; delete window[cbName]; }
   }, 8000);
 
   window[cbName] = function(result){
@@ -711,11 +765,11 @@ function submitStressEvent(){
     delete window[cbName];
     script.remove();
     if(result && result.error){
-      status.textContent = 'Could not save: ' + result.error;
+      status.textContent = 'Could not save: ' + result.error; saveBtn.disabled = false;
       return;
     }
     status.textContent = 'Saved.';
-    setTimeout(() => { toggleAddEventForm(); loadData(); }, 500);
+    setTimeout(() => { toggleAddEventForm(); loadData(true); }, 400);
   };
 
   const url = APPS_SCRIPT_URL + '?' + Object.keys(params)
@@ -726,15 +780,15 @@ function submitStressEvent(){
   script.onerror = function(){
     clearTimeout(timeout);
     delete window[cbName];
-    status.textContent = 'Could not reach the Apps Script endpoint.';
+    status.textContent = 'Could not reach the Apps Script endpoint.'; saveBtn.disabled = false;
     script.remove();
   };
   document.head.appendChild(script);
 }
 
 let callbackCounter = 0;
-function loadData(){
-  showState('loading', 'Connecting…');
+function loadData(silent){
+  if(!silent) showState('loading', 'Connecting…');
   if(!APPS_SCRIPT_URL || APPS_SCRIPT_URL.indexOf('PASTE_YOUR') === 0){
     showState('error', 'No data source configured yet — add your Apps Script Web App URL in the code.');
     return;
@@ -781,20 +835,23 @@ function loadData(){
       catPhotos = data.catPhotos || {};
       if(CATS.length > 1) renderCatTabs();
 
-      const eventDates = [...allStraining.map(s=>s.date), ...allPee.map(p=>p.date)];
+      const eventDates = [...allStraining.map(s=>s.date), ...allPee.map(p=>p.date), ...allPoop.map(p=>p.date)];
       const todayKey = dateKeyFromDate(new Date());
       let minKey = eventDates.length ? eventDates.reduce((a,b) => a < b ? a : b) : todayKey;
       let maxKey = eventDates.length ? eventDates.reduce((a,b) => a > b ? a : b) : todayKey;
       if (todayKey > maxKey) maxKey = todayKey;
 
+      const keepKey = (silent && dateList.length) ? dateList[currentDateIdx] : null;
+      const keepView = silent ? currentView : 'day';
+      const keepAnchor = silent ? monthAnchor : null;
       dateList = generateDateRange(minKey, maxKey);
-      currentDateIdx = dateList.indexOf(todayKey);
+      currentDateIdx = dateList.indexOf(keepKey || todayKey);
       if (currentDateIdx === -1) currentDateIdx = dateList.length - 1;
-      monthAnchor = new Date(dateList[currentDateIdx] + 'T00:00:00');
+      monthAnchor = keepAnchor || new Date(dateList[currentDateIdx] + 'T00:00:00');
 
       populateDateSelect();
       showState('app');
-      setView('day');
+      setView(keepView);
       loadWeather(minKey);
     }catch(e){
       console.error(e);
@@ -829,7 +886,7 @@ function populateDateSelect(){
   dateList.forEach((d,i) => {
     const opt = document.createElement('option');
     opt.value = i;
-    const hasEvents = straining.some(s=>s.date===d) || pee.some(p=>p.date===d) || stressEvents.some(ev=>ev.date===d);
+    const hasEvents = straining.some(s=>s.date===d) || pee.some(p=>p.date===d) || poop.some(p=>p.date===d) || stressEvents.some(ev=>ev.date===d);
     opt.textContent = (hasEvents ? '● ' : '　 ') + formatDateLabel(d);
     sel.appendChild(opt);
   });
@@ -1301,14 +1358,6 @@ document.addEventListener('click', hideTooltip);
 
 // Large, clear number + a plain visual bar (no text on the bar itself) for
 // any 1–6 style rating, used in place of "5.0/6" style text.
-function ratingBarHtml(value, max){
-  const pct = Math.max(0, Math.min(100, (value/max)*100));
-  return '<div style="display:flex;align-items:center;gap:8px;margin-top:2px;">'
-    + '<span style="font-size:1.3em;font-weight:800;line-height:1;">' + value + '</span>'
-    + '<span style="flex:1;min-width:70px;height:7px;background:rgba(255,255,255,0.25);border-radius:4px;overflow:hidden;">'
-    + '<span style="display:block;height:100%;width:' + pct + '%;background:#fff;border-radius:4px;"></span>'
-    + '</span></div>';
-}
 
 function fmtTime(d){
   return d.toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit', hour12:false});
@@ -1395,9 +1444,10 @@ function renderDayView(date){
   const overlayLabels = {none:'None', weather:'Weather', feeding:'Feedings', stress:'Stressful events'};
   const menuBtnLabel = dayOverlay === 'none' ? '⋯' : '⋯ ' + overlayLabels[dayOverlay];
   container.innerHTML =
+    '<div class="chart-card"><h3>Today</h3><div id="dayInlineList"></div></div>' +
     '<div class="chart-card">' +
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">' +
-        '<h3 style="margin:0;">Straining &amp; pee &amp; poop</h3>' +
+        '<h3 style="margin:0;">Straining, Pee, &amp; Poop</h3>' +
         '<div style="position:relative;">' +
           '<button class="overlay-menu-btn" onclick="toggleOverlayMenu()">' + menuBtnLabel + '</button>' +
           '<div id="overlayMenu" class="overlay-menu" style="display:none;">' +
@@ -1407,7 +1457,6 @@ function renderDayView(date){
           '</div>' +
         '</div>' +
       '</div>' +
-      '<div class="scroll-hint">← scroll — the centered time is always active</div>' +
       '<div class="chart-viewport" id="chartViewport">' +
         '<div class="chart-scroll" id="chartScroll"><div class="chart-canvas" id="chartDay"></div></div>' +
         '<div class="day-marker-line"></div>' +
@@ -1421,8 +1470,7 @@ function renderDayView(date){
         (dayOverlay === 'feeding' ? '<span><span class="swatch" style="background:#c99a3a;"></span>Feeding time</span>' : '') +
         (dayOverlay === 'stress' ? '<span><span class="swatch" style="background:#7a3b8c;"></span>Stressful event</span>' : '') +
       '</div>' +
-    '</div>' +
-    '<div class="chart-card"><h3>Today\'s log</h3><div id="dayInlineList"></div></div>';
+    '</div>';
 
   const drawExtraMap = {weather: drawWeatherArea, feeding: drawFeedingLines, stress: drawStressEventLines};
   drawCoreDayChart('chartDay', date, drawExtraMap[dayOverlay] || null);
@@ -1462,7 +1510,7 @@ function renderDayInlineList(date){
 
   const el = document.getElementById('dayInlineList');
   if(!rows.length){
-    el.innerHTML = '<div class="empty-msg">No entries logged today.</div>';
+    el.innerHTML = '<div class="empty-msg">No entries logged for this day.</div>';
     return;
   }
   let html = '<table class="list-table"><thead><tr><th>Time</th><th>Type</th><th>Detail</th><th>Note</th></tr></thead><tbody>';
@@ -1974,7 +2022,8 @@ function drawBarChart(containerId, stats, color, valueFn, formatFn, labelsOnly){
   zone.addEventListener('pointercancel', () => tracking = false);
 })();
 
-window.addEventListener('resize', renderCurrentView);
+window.addEventListener('resize', () => { if(document.getElementById('addEventBackdrop').style.display === 'none') renderCurrentView(); });
+document.addEventListener('keydown', e => { if(e.key==='Escape' && document.getElementById('addEventBackdrop').style.display !== 'none') toggleAddEventForm(); });
 initDeviceMode();
 updateIconsAndManifest(generateDefaultIcon());
 loadData();
