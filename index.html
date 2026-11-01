@@ -171,15 +171,39 @@
 
   .cat-tabs{position:relative;display:grid;grid-template-columns:repeat(4,1fr);margin:0 0 10px;}
   .cat-cell{position:relative;height:84px;display:flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
-  .cat-btn{width:64px;height:64px;border-radius:50%;border:2px solid var(--line);padding:0;background:var(--card);overflow:hidden;pointer-events:none;
+  .cat-btn{width:100%;height:100%;border-radius:50%;border:2px solid var(--line);padding:0;background:var(--card);overflow:hidden;pointer-events:none;
     color:var(--ink);font-weight:700;display:flex;align-items:center;justify-content:center;
-    opacity:.6;transform:scale(.86);transition:transform .38s cubic-bezier(.3,1.3,.5,1),opacity .25s ease;}
-  .cat-cell.active .cat-btn{opacity:1;transform:scale(1);}
-  .cat-cell:active .cat-btn{transform:scale(.92);}
+    }
   .cat-btn img{width:100%;height:100%;object-fit:cover;display:block;}
   .cat-ring{position:absolute;top:6px;left:0;width:72px;height:72px;border-radius:36px;border:3px solid var(--accent);pointer-events:none;will-change:left,width,transform;}
-  .cat-cell.active::after{content:var(--badge, '');position:absolute;top:2px;left:calc(50% + 12px);font-size:22px;line-height:1;animation:badgePop .5s cubic-bezier(.3,1.5,.5,1);}
+  .cat-cell.active::after{z-index:3;content:var(--badge, '');position:absolute;top:2px;left:calc(50% + 12px);font-size:22px;line-height:1;animation:badgePop .5s cubic-bezier(.3,1.5,.5,1);}
   @keyframes badgePop{from{transform:scale(0) rotate(-30deg);}to{transform:scale(1) rotate(0);}}
+  .cat-face{position:relative;width:64px;height:64px;opacity:.6;transform:scale(.86);transition:transform .38s cubic-bezier(.3,1.3,.5,1),opacity .25s ease;pointer-events:none;}
+  .cat-cell.active .cat-face{opacity:1;transform:scale(1);}
+  .cat-cell:active .cat-face{transform:scale(.92);}
+  .cat-sticker{position:absolute;display:flex;align-items:center;justify-content:center;line-height:1;pointer-events:none;}
+  .cat-sticker svg{width:100%;height:100%;display:block;}
+  .holiday-tip{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--accent);border-radius:12px;padding:8px 8px 8px 14px;margin:0 0 12px;font-size:0.88rem;}
+  .holiday-tip span{flex:1;min-width:0;}
+  .holiday-tip button{border:none;border-radius:999px;padding:8px 14px;font-size:0.85rem;font-weight:700;cursor:pointer;background:var(--accent);color:#fff;}
+  .holiday-tip button.x{background:transparent;color:var(--ink-soft);padding:8px 10px;}
+  .ed-row{display:flex;gap:6px;align-items:center;}
+  .ed-title{font-weight:700;text-align:center;margin-bottom:10px;}
+  .ed-input{width:100%;font-size:16px;padding:9px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);}
+  .ed-btn{flex:1;padding:12px;border-radius:8px;border:1px solid var(--line);background:var(--card);font-size:16px;color:var(--ink);cursor:pointer;}
+  .ed-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;}
+  .ed-status{min-height:1.2em;font-size:0.8rem;color:var(--ink-soft);text-align:center;margin-top:8px;}
+  .stk-prev{position:relative;width:180px;height:180px;margin:52px auto 12px;touch-action:none;cursor:grab;}
+  .stk-face{width:100%;height:100%;border-radius:50%;overflow:hidden;border:2px solid var(--line);background:var(--card);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.4rem;}
+  .stk-face img{width:100%;height:100%;object-fit:cover;}
+  input[type=range]{accent-color:var(--accent);}
+  .stk-pal{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:8px 0;}
+  .stk-pal button{width:46px;height:46px;border-radius:10px;border:2px solid var(--line);background:var(--card);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:24px;padding:4px;color:var(--ink);}
+  .stk-pal button.active{border-color:var(--accent);background:var(--sunk);}
+  .stk-pal button svg{width:100%;height:100%;}
+  .stk-cats{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;}
+  .stk-cats button{padding:6px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:0.85rem;cursor:pointer;}
+  .stk-cats button.active{background:var(--ink);color:var(--on-ink);}
   @keyframes catSwap{from{opacity:0;transform:translateY(8px) scale(.985);}to{opacity:1;transform:none;}}
   #periodContent.cat-swap{animation:catSwap .38s cubic-bezier(0.22,0.61,0.36,1);}
   .view-switch{position:relative;display:flex;margin:0 auto 12px;max-width:260px;background:var(--line);border-radius:999px;padding:3px;}
@@ -373,6 +397,7 @@
 
       <div id="appArea" style="display:none;">
 
+        <div id="holidayTip" class="holiday-tip" style="display:none;"></div>
         <div id="lastSeen" class="last-seen"></div>
         <div id="periodContent">
           <div id="viewContainer"></div>
@@ -383,6 +408,8 @@
   </div>
 </div>
 
+<div id="holEditBackdrop" style="display:none;position:fixed;inset:0;z-index:100;background:rgba(20,24,30,0.55);align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this) closeHolidayEditor();"><div class="about-card" id="holEditCard" style="max-width:380px;"></div></div>
+<div id="stkBackdrop" style="display:none;position:fixed;inset:0;z-index:110;background:rgba(20,24,30,0.55);align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this) closeStickerEditor();"><div class="about-card" id="stkCard" style="max-width:380px;"></div></div>
 <div id="fx" class="fx" aria-hidden="true"></div>
 <div id="toast" class="toast"></div>
 <div id="updateBanner" style="display:none;position:fixed;z-index:85;left:50%;transform:translateX(-50%);top:max(10px,env(safe-area-inset-top));align-items:center;gap:10px;background:var(--ink);color:var(--on-ink);padding:8px 8px 8px 16px;border-radius:999px;font-size:0.85rem;box-shadow:0 6px 20px rgba(0,0,0,0.3);white-space:nowrap;">
@@ -410,6 +437,12 @@
     </div>
     <div class="about-label">Holiday theme</div>
     <select id="holidaySel" class="about-select" onchange="setHolidayPref(this.value)"></select>
+    <div class="about-label">When the holiday changes</div>
+    <div id="holChangeSeg" class="theme-seg">
+      <button data-pref="ask" onclick="setHolidayChange('ask')">Ask me first</button>
+      <button data-pref="auto" onclick="setHolidayChange('auto')">Switch automatically</button>
+    </div>
+    <button class="ed-btn" style="width:100%;margin-top:8px;" onclick="hideAbout();openHolidayEditor();">Edit holidays…</button>
     <div class="about-label">Title font</div>
     <select id="fontSel" class="about-select" onchange="setTitleFont(this.value)"></select>
 
@@ -527,58 +560,131 @@ let allStraining = [], allPee = [], allPoop = [], allStressEvents = [];
 // belonging to the first cat, for backward compatibility.
 // Stamped each time the file is regenerated, so the popup tells you which
 // version your device is actually running.
-const BUILD_STAMP = '2026-11-01T18:07:09-05:00';
+const BUILD_STAMP = '2026-11-01T18:22:45-05:00';
 // ===== Holidays =====
-const HOLIDAYS = {
-  newyear:     {name:"New Year's",     greet:'🎉 Happy New Year!',         badge:'🎉', fx:['🎊','✨','🎉'], light:'#a8841f', dark:'#b8952b'},
-  valentine:   {name:"Valentine's Day",greet:'💝 Happy Valentine\'s Day!', badge:'💝', fx:['💗','💕','❤️'], light:'#c2345f', dark:'#c2345f'},
-  stpatrick:   {name:"St. Patrick's",  greet:'🍀 Happy St. Patrick\'s Day!',badge:'🍀', fx:['☘️','🍀'],       light:'#2f8f4e', dark:'#2f8f4e'},
-  easter:      {name:'Easter',         greet:'🐣 Happy Easter!',           badge:'🐣', fx:['🌷','🥚','🐣'], light:'#7f5bc0', dark:'#7f5bc0'},
-  july4:       {name:'Fourth of July', greet:'🎆 Happy 4th of July!',      badge:'🎆', fx:['✨','🎆','⭐'], light:'#2b5fb5', dark:'#3a6fc4'},
-  halloween:   {name:'Halloween',      greet:'🎃 Happy Halloween!',        badge:'🎃', fx:['🦇','🎃','👻'], light:'#c8651b', dark:'#c8651b'},
-  thanksgiving:{name:'Thanksgiving',   greet:'🦃 Happy Thanksgiving!',     badge:'🦃', fx:['🍂','🍁','🍂'], light:'#a8602a', dark:'#b46c33'},
-  christmas:   {name:'Christmas',      greet:'🎄 Merry Christmas!',        badge:'🎅', fx:['❄️','❄️','✨'], light:'#b3342d', dark:'#b3342d'}
+const HOLIDAY_ORDER = ['newyear','christmas','valentine','stpatrick','easter','july4','halloween','thanksgiving'];
+const HOLIDAY_BASE = {
+  newyear:     {name:"New Year's",      badge:'🎉', fx:['🎊','✨','🎉'], light:'#a8841f', dark:'#b8952b', start:'12-27', end:'01-02'},
+  christmas:   {name:'Christmas',       badge:'🎅', fx:['❄️','❄️','✨'], light:'#b3342d', dark:'#b3342d', start:'12-01', end:'12-26'},
+  valentine:   {name:"Valentine's Day", badge:'💝', fx:['💗','💕','❤️'], light:'#c2345f', dark:'#c2345f', start:'02-07', end:'02-14'},
+  stpatrick:   {name:"St. Patrick's Day",badge:'🍀', fx:['☘️','🍀'],       light:'#2f8f4e', dark:'#2f8f4e', start:'03-10', end:'03-17'},
+  easter:      {name:'Easter',          badge:'🐣', fx:['🌷','🥚','🐣'], light:'#7f5bc0', dark:'#7f5bc0', start:'easter-6', end:'easter+0'},
+  july4:       {name:'Fourth of July',  badge:'🎆', fx:['✨','🎆','⭐'], light:'#2b5fb5', dark:'#3a6fc4', start:'06-29', end:'07-05'},
+  halloween:   {name:'Halloween',       badge:'🎃', fx:['🦇','🎃','👻'], light:'#c8651b', dark:'#c8651b', start:'10-15', end:'11-01'},
+  thanksgiving:{name:'Thanksgiving',    badge:'🦃', fx:['🍂','🍁','🍂'], light:'#a8602a', dark:'#b46c33', start:'thanksgiving-7', end:'thanksgiving+0'}
 };
+let holidayOverrides = {};   // key -> {name,start,end,font,color,accent,stickers} from the sheet's Holidays tab
+let holidayIcons = {};       // key -> data URI
+function setHolidayConfig(list){
+  const o = {};
+  (list || []).forEach(r => {
+    if(!r || !r.key) return;
+    let st = {}; try{ st = r.stickers ? JSON.parse(r.stickers) : {}; }catch(e){}
+    o[r.key] = {name:r.name, start:r.start, end:r.end, font:r.font, color:r.color, accent:r.accent, stickers:st};
+  });
+  holidayOverrides = o;
+}
+function hol(key){
+  const b = HOLIDAY_BASE[key] || {name:key, badge:'✨', fx:['✨'], light:'#3a6b63', dark:'#3a6b63', start:'', end:''};
+  const o = holidayOverrides[key] || {};
+  return {key, name:o.name || b.name, badge:b.badge, fx:b.fx, light:b.light, dark:b.dark,
+          start:o.start || b.start, end:o.end || b.end, font:o.font || '', color:o.color || '', accent:o.accent || '',
+          stickers:o.stickers || {}};
+}
+function allHolidayKeys(){
+  return HOLIDAY_ORDER.concat(Object.keys(holidayOverrides).filter(k => HOLIDAY_ORDER.indexOf(k) === -1));
+}
 function easterDate(y){
   const a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),
         h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),
         mo=Math.floor((h+l-7*m+114)/31),da=((h+l-7*m+114)%31)+1;
   return new Date(y, mo-1, da);
 }
-function currentHoliday(now){
-  now = now || new Date();
-  const y = now.getFullYear(), day0 = new Date(y, now.getMonth(), now.getDate());
-  const within = (start, end) => day0 >= start && day0 <= end;
-  const md = (m,d) => new Date(y, m-1, d);
-  const easter = easterDate(y);
-  const nov1 = md(11,1); const thu = (4 - nov1.getDay() + 7) % 7; const thanks = md(11, 1 + thu + 21);
-  if(within(md(12,27), md(12,31)) || within(md(1,1), md(1,2))) return 'newyear';
-  if(within(md(12,1), md(12,26))) return 'christmas';
-  if(within(md(2,7), md(2,14))) return 'valentine';
-  if(within(md(3,10), md(3,17))) return 'stpatrick';
-  if(within(new Date(easter.getTime()-6*86400000), easter)) return 'easter';
-  if(within(md(6,29), md(7,5))) return 'july4';
-  if(within(md(10,15), md(11,1))) return 'halloween';
-  if(within(new Date(thanks.getTime()-7*86400000), thanks)) return 'thanksgiving';
+function thanksgivingDate(y){
+  const nov1 = new Date(y, 10, 1);
+  return new Date(y, 10, 1 + ((4 - nov1.getDay() + 7) % 7) + 21);
+}
+// Spec: "MM-DD" | "easter[+-N]" | "thanksgiving[+-N]"
+function resolveSpec(spec, y){
+  spec = String(spec || '').trim().toLowerCase();
+  let m = spec.match(/^(\d{1,2})[-\/](\d{1,2})$/);
+  if(m) return new Date(y, Number(m[1]) - 1, Number(m[2]));
+  m = spec.match(/^(easter|thanksgiving)\s*([+-]\s*\d+)?$/);
+  if(m){
+    const d = m[1] === 'easter' ? easterDate(y) : thanksgivingDate(y);
+    d.setDate(d.getDate() + (parseInt((m[2] || '0').replace(/\s/g,''), 10) || 0));
+    return d;
+  }
   return null;
 }
-let holidayPref = 'auto';
-try{ holidayPref = localStorage.getItem('holidayPref') || 'auto'; }catch(e){}
-function setHolidayPref(v){ holidayPref = v; try{ localStorage.setItem('holidayPref', v); }catch(e){} applyHoliday(); }
+function holidayActive(h, now){
+  const day0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  for(const y of [day0.getFullYear() - 1, day0.getFullYear()]){
+    const st = resolveSpec(h.start, y); let en = resolveSpec(h.end, y);
+    if(!st || !en) continue;
+    if(en < st) en = resolveSpec(h.end, y + 1);
+    if(day0 >= st && day0 <= en) return true;
+  }
+  return false;
+}
+function currentHoliday(now){
+  now = now || new Date();
+  return allHolidayKeys().find(k => holidayActive(hol(k), now)) || null;
+}
+
+// --- per-device preferences ---
+function lsGet(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : v; }catch(e){ return d; } }
+function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+let holidayPref = lsGet('holidayPref', 'follow');          // 'follow' | 'off' | <holiday key> (pinned on this device)
+if(holidayPref === 'auto') holidayPref = 'follow';
+let holidayChange = lsGet('holidayChange', 'ask');         // 'ask' (stay put + show a tip) | 'auto'
+let activeHolidayKey = null;
+
+function setHolidayPref(v){ holidayPref = v; lsSet('holidayPref', v); applyHoliday(); }
+function setHolidayChange(v){ holidayChange = v; lsSet('holidayChange', v); applyHoliday(); syncSettingsUI(); }
+function effectiveHoliday(){
+  if(holidayPref === 'off') return null;
+  if(holidayPref !== 'follow') return holidayPref;
+  const sched = currentHoliday() || '';
+  let shown = lsGet('holidayShown', null);
+  if(shown === null || holidayChange === 'auto'){ shown = sched; lsSet('holidayShown', shown); }
+  return shown || null;
+}
+function updateHolidayTip(){
+  const el = document.getElementById('holidayTip');
+  if(!el) return;
+  const sched = currentHoliday() || '';
+  const shown = lsGet('holidayShown', '') || '';
+  const show = holidayPref === 'follow' && holidayChange === 'ask' && sched !== shown && lsGet('holidayTipDismissed', '') !== (sched || 'none');
+  if(!show){ el.style.display = 'none'; return; }
+  const label = sched ? hol(sched).badge + ' Switch to <b>' + escapeHtml(hol(sched).name) + '</b>' : 'Switch to <b>standard theme</b>';
+  el.innerHTML = '<span>' + label + '</span><button onclick="acceptHolidaySwitch()">Switch</button><button class="x" onclick="dismissHolidayTip()" aria-label="Dismiss">✕</button>';
+  el.style.display = 'flex';
+}
+function acceptHolidaySwitch(){ lsSet('holidayShown', currentHoliday() || ''); applyHoliday(); }
+function dismissHolidayTip(){ lsSet('holidayTipDismissed', currentHoliday() || 'none'); updateHolidayTip(); }
+
 function applyHoliday(){
-  const key = holidayPref === 'off' ? null : (holidayPref === 'auto' ? currentHoliday() : holidayPref);
-  const h = key && HOLIDAYS[key];
+  const key = effectiveHoliday();
+  const h = key ? hol(key) : null;
+  const changed = key !== activeHolidayKey;
+  activeHolidayKey = key;
   const root = document.documentElement;
   if(h){
+    const acc = h.accent || (isDark() ? h.dark : h.light);
     root.dataset.holiday = key;
-    root.style.setProperty('--accent', isDark() ? h.dark : h.light);
-    root.style.setProperty('--fab', isDark() ? h.dark : h.light);
+    root.style.setProperty('--accent', acc);
+    root.style.setProperty('--fab', acc);
     root.style.setProperty('--badge', '"' + h.badge + '"');
   } else {
     delete root.dataset.holiday;
     ['--accent','--fab','--badge'].forEach(v => root.style.removeProperty(v));
   }
-  buildFx(h);
+  if(changed) buildFx(h);
+  applyTitleFont();
+  refreshAppIcon();
+  renderStickers();
+  updateHolidayTip();
 }
 function buildFx(h){
   const fx = document.getElementById('fx');
@@ -597,6 +703,276 @@ function buildFx(h){
     sp.style.setProperty('--rot', (Math.random() * 540 - 270) + 'deg');
     fx.appendChild(sp);
   }
+}
+function refreshAppIcon(){
+  const uri = (activeHolidayKey && holidayIcons[activeHolidayKey]) || defaultLogo;
+  if(uri) setAppIcon(uri);
+}
+document.addEventListener('visibilitychange', () => { if(!document.hidden) applyHoliday(); });
+
+// ===== Stickers =====
+const STICKER_SVG = {
+  santa:   '<svg viewBox="0 0 100 100"><path d="M12 78C14 40 40 12 78 24C70 36 78 54 90 78Z" fill="#d33a32"/><rect x="6" y="72" width="88" height="19" rx="9.5" fill="#fff"/><circle cx="80" cy="22" r="10" fill="#fff"/></svg>',
+  witch:   '<svg viewBox="0 0 100 100"><path d="M52 4L74 70H28Z" fill="#2b2233"/><rect x="27" y="52" width="47" height="9" fill="#8a56c9"/><ellipse cx="50" cy="74" rx="45" ry="9" fill="#2b2233"/></svg>',
+  party:   '<svg viewBox="0 0 100 100"><path d="M50 10L82 88H18Z" fill="#7c5cd6"/><path d="M36 52L64 52L70 66L30 66Z" fill="#ffd23f"/><circle cx="50" cy="9" r="7" fill="#ff5d8f"/></svg>',
+  bunny:   '<svg viewBox="0 0 100 100"><g transform="rotate(-12 34 60)"><ellipse cx="34" cy="38" rx="11" ry="31" fill="#f4eef0" stroke="#cfc5c9"/><ellipse cx="34" cy="40" rx="5" ry="22" fill="#f6a5b8"/></g><g transform="rotate(12 66 60)"><ellipse cx="66" cy="38" rx="11" ry="31" fill="#f4eef0" stroke="#cfc5c9"/><ellipse cx="66" cy="40" rx="5" ry="22" fill="#f6a5b8"/></g></svg>',
+  topgreen:'<svg viewBox="0 0 100 100"><rect x="30" y="12" width="40" height="58" rx="3" fill="#2f8f4e"/><rect x="30" y="52" width="40" height="10" fill="#17331f"/><ellipse cx="50" cy="73" rx="43" ry="9" fill="#2f8f4e"/></svg>',
+  pilgrim: '<svg viewBox="0 0 100 100"><path d="M31 72L37 16H63L69 72Z" fill="#2d2a2a"/><rect x="33" y="57" width="34" height="9" fill="#b58b2b"/><ellipse cx="50" cy="74" rx="41" ry="8" fill="#2d2a2a"/></svg>',
+  sam:     '<svg viewBox="0 0 100 100"><rect x="30" y="10" width="40" height="60" rx="3" fill="#fff"/><rect x="30" y="10" width="40" height="18" rx="3" fill="#2b4f9e"/><rect x="30" y="36" width="40" height="8" fill="#c8312b"/><rect x="30" y="52" width="40" height="8" fill="#c8312b"/><ellipse cx="50" cy="73" rx="43" ry="9" fill="#2b4f9e"/></svg>'
+};
+const STICKER_PALETTE = {
+  newyear:['party','e:🥳','e:🎩','e:👑','e:🎉'], christmas:['santa','e:🎄','e:❄️','e:🎁','e:⭐'],
+  valentine:['e:💗','e:😍','e:💘','e:🌹','e:🕶️'], stpatrick:['topgreen','e:🍀','e:☘️','e:🌈'],
+  easter:['bunny','e:🐣','e:🌷','e:🥚'], july4:['sam','e:⭐','e:🎆','e:🇺🇸'],
+  halloween:['witch','e:🎃','e:🦇','e:🕸️','e:👻'], thanksgiving:['pilgrim','e:🦃','e:🍂','e:🌽']
+};
+const STICKER_GENERIC = ['e:👑','e:🎀','e:🕶️','e:✨'];
+function stickerInner(id){
+  if(STICKER_SVG[id]) return STICKER_SVG[id];
+  return id && id.indexOf('e:') === 0 ? id.slice(2) : '';
+}
+// x,y = offset of the sticker's center from the photo's center, s = width, all in units of the photo's diameter.
+function stickerHTML(st, D){
+  if(!st || !st.id) return '';
+  const w = st.s * D;
+  return '<span class="cat-sticker" style="left:' + (D/2 + st.x*D) + 'px;top:' + (D/2 + st.y*D) + 'px;width:' + w + 'px;height:' + w +
+    'px;transform:translate(-50%,-50%) rotate(' + (st.r || 0) + 'deg);font-size:' + (w*0.85) + 'px;">' + stickerInner(st.id) + '</span>';
+}
+function renderStickers(){
+  const st = (activeHolidayKey ? hol(activeHolidayKey).stickers : {}) || {};
+  document.querySelectorAll('#catTabs .cat-cell').forEach(cell => {
+    const face = cell.querySelector('.cat-face');
+    if(!face) return;
+    face.querySelectorAll('.cat-sticker').forEach(n => n.remove());
+    const sd = st[cell.dataset.cat];
+    if(sd) face.insertAdjacentHTML('beforeend', stickerHTML(sd, 64));
+  });
+}
+
+// ===== Talking to the Apps Script for holiday settings =====
+function jsonpCall(params, timeoutMs){
+  return new Promise((resolve, reject) => {
+    const cb = 'cfgCb_' + (++callbackCounter);
+    const script = document.createElement('script');
+    const cleanup = () => { clearTimeout(t); delete window[cb]; script.remove(); };
+    const t = setTimeout(() => { cleanup(); reject(new Error('Timed out')); }, timeoutMs || 20000);
+    window[cb] = d => { cleanup(); resolve(d); };
+    script.onerror = () => { cleanup(); reject(new Error('Could not reach the Apps Script')); };
+    script.src = APPS_SCRIPT_URL + '?' + Object.keys(params).map(k => k + '=' + encodeURIComponent(params[k])).join('&') + '&callback=' + cb + '&_=' + Date.now();
+    document.head.appendChild(script);
+  });
+}
+async function saveHoliday(key, fields){
+  const r = await jsonpCall(Object.assign({action:'saveHoliday', key:key}, fields));
+  if(!r || !r.ok) throw new Error(r && r.error ? r.error : 'Save failed — paste in the newest Apps Script and redeploy');
+}
+async function saveHolidayIcon(key, dataUri){
+  await fetch(APPS_SCRIPT_URL, {method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body: JSON.stringify({action:'saveHolidayIcon', key:key, icon:dataUri})});
+  // The POST response can't be read from here, so re-read the sheet to confirm it landed.
+  await new Promise(r => setTimeout(r, 2500));
+  const d = await jsonpCall({action:'holidays'});
+  const got = (d && d.holidayIcons && d.holidayIcons[key]) || '';
+  if(got !== dataUri) throw new Error('Icon didn\'t save — make sure the newest Apps Script is deployed');
+}
+function resizeIconFile(file){
+  return new Promise((resolve, reject) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const S = 180, c = document.createElement('canvas'); c.width = c.height = S;
+      const ctx = c.getContext('2d');
+      const side = Math.min(img.width, img.height);
+      ctx.drawImage(img, (img.width - side)/2, (img.height - side)/2, side, side, 0, 0, S, S);
+      URL.revokeObjectURL(url);
+      let out = c.toDataURL('image/png');
+      if(out.length > 45000){
+        ctx.globalCompositeOperation = 'destination-over'; ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, S, S);
+        out = c.toDataURL('image/jpeg', 0.9);
+        if(out.length > 45000) out = c.toDataURL('image/jpeg', 0.7);
+      }
+      out.length > 48000 ? reject(new Error('Image is too detailed — try a simpler one')) : resolve(out);
+    };
+    img.onerror = () => reject(new Error('Could not read that image'));
+    img.src = url;
+  });
+}
+
+// ===== Holiday editor =====
+let editKey = null, editIcon = undefined, editColorOn = false, editAccentOn = false;
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function parseSpec(spec){
+  spec = String(spec || '').trim().toLowerCase();
+  let m = spec.match(/^(\d{1,2})[-\/](\d{1,2})$/);
+  if(m) return {t:'date', m:Number(m[1]), d:Number(m[2]), o:0};
+  m = spec.match(/^(easter|thanksgiving)\s*([+-]\s*\d+)?$/);
+  if(m) return {t:m[1], m:1, d:1, o:parseInt((m[2] || '0').replace(/\s/g,''), 10) || 0};
+  return {t:'date', m:1, d:1, o:0};
+}
+function specRow(id, sp){
+  return '<div class="ed-row">' +
+    '<select id="' + id + '_t" class="ed-input" style="flex:1.2" onchange="edSpecToggle(\'' + id + '\')">' +
+      '<option value="date"' + (sp.t==='date'?' selected':'') + '>Date</option>' +
+      '<option value="easter"' + (sp.t==='easter'?' selected':'') + '>Easter ±</option>' +
+      '<option value="thanksgiving"' + (sp.t==='thanksgiving'?' selected':'') + '>Thanksgiving ±</option></select>' +
+    '<span id="' + id + '_d" style="display:' + (sp.t==='date'?'flex':'none') + ';gap:6px;flex:2">' +
+      '<select id="' + id + '_m" class="ed-input">' + MONTHS.map((n,i) => '<option value="' + (i+1) + '"' + (sp.m===i+1?' selected':'') + '>' + n + '</option>').join('') + '</select>' +
+      '<input id="' + id + '_day" class="ed-input" type="number" min="1" max="31" value="' + sp.d + '" style="width:64px"></span>' +
+    '<span id="' + id + '_o" style="display:' + (sp.t==='date'?'none':'flex') + ';gap:6px;flex:2;align-items:center">' +
+      '<input id="' + id + '_off" class="ed-input" type="number" value="' + sp.o + '" style="width:80px"> days</span></div>';
+}
+function edSpecToggle(id){
+  const t = document.getElementById(id + '_t').value;
+  document.getElementById(id + '_d').style.display = t === 'date' ? 'flex' : 'none';
+  document.getElementById(id + '_o').style.display = t === 'date' ? 'none' : 'flex';
+}
+function readSpec(id){
+  const t = document.getElementById(id + '_t').value;
+  if(t === 'date'){
+    const m = Number(document.getElementById(id + '_m').value), d = Math.max(1, Math.min(31, Number(document.getElementById(id + '_day').value) || 1));
+    return String(m).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+  }
+  const o = parseInt(document.getElementById(id + '_off').value, 10) || 0;
+  return t + (o < 0 ? '-' + Math.abs(o) : '+' + o);
+}
+function openHolidayEditor(key){
+  editKey = key || editKey || allHolidayKeys()[0];
+  editIcon = undefined;
+  renderHolidayEditor();
+  document.getElementById('holEditBackdrop').style.display = 'flex';
+}
+function closeHolidayEditor(){ document.getElementById('holEditBackdrop').style.display = 'none'; }
+function renderHolidayEditor(){
+  const h = hol(editKey);
+  editColorOn = !!h.color; editAccentOn = !!h.accent;
+  const icon = editIcon !== undefined ? editIcon : (holidayIcons[editKey] || '');
+  document.getElementById('holEditCard').innerHTML =
+    '<div class="ed-title">Edit holidays</div>' +
+    '<select id="edKey" class="ed-input" onchange="editKey=this.value;editIcon=undefined;renderHolidayEditor()">' +
+      allHolidayKeys().map(k => '<option value="' + k + '"' + (k===editKey?' selected':'') + '>' + hol(k).badge + ' ' + escapeHtml(hol(k).name) + '</option>').join('') + '</select>' +
+    '<div class="about-label">Name</div><input id="edName" class="ed-input" value="' + escapeHtml(h.name) + '">' +
+    '<div class="about-label">Starts</div>' + specRow('edS', parseSpec(h.start)) +
+    '<div class="about-label">Ends</div>' + specRow('edE', parseSpec(h.end)) +
+    '<div class="about-label">Title font</div><select id="edFont" class="ed-input"><option value="">Same as default</option>' +
+      Object.keys(TITLE_FONTS).map(k => '<option value="' + k + '"' + (h.font===k?' selected':'') + '>' + TITLE_FONTS[k].label + '</option>').join('') + '</select>' +
+    '<div class="about-label">Title color</div><div class="ed-row"><input id="edColor" type="color" value="' + (h.color || '#c8651b') + '" style="width:56px;height:40px;border:none;background:none;" oninput="editColorOn=true;document.getElementById(\'edColorUse\').checked=true">' +
+      '<label style="font-size:0.85rem;"><input id="edColorUse" type="checkbox"' + (h.color?' checked':'') + ' onchange="editColorOn=this.checked"> Use custom color</label></div>' +
+    '<div class="about-label">Accent color (buttons, highlight ring)</div><div class="ed-row"><input id="edAccent" type="color" value="' + (h.accent || (isDark()?h.dark:h.light)) + '" style="width:56px;height:40px;border:none;background:none;" oninput="document.getElementById(\'edAccentUse\').checked=true">' +
+      '<label style="font-size:0.85rem;"><input id="edAccentUse" type="checkbox"' + (h.accent?' checked':'') + '> Use custom color</label></div>' +
+    '<div class="about-label">App icon (falls back to the default icon)</div>' +
+    '<div class="ed-row"><img id="edIconPrev" src="' + icon + '" style="width:56px;height:56px;border-radius:12px;object-fit:cover;background:var(--sunk);' + (icon?'':'visibility:hidden;') + '">' +
+      '<input id="edIconFile" type="file" accept="image/*" style="flex:1;min-width:0;font-size:14px;" onchange="edPickIcon(this)">' +
+      '<button class="ed-btn" style="flex:0 0 auto;padding:8px 10px;font-size:14px;" onclick="edClearIcon()">Remove</button></div>' +
+    '<div class="ed-row" style="margin-top:10px;"><button class="ed-btn" onclick="openStickerEditor(editKey)">Stickers…</button>' +
+      '<button class="ed-btn" onclick="setHolidayPref(editKey);syncSettingsUI();setEdStatus(\'Previewing on this device\')">Preview</button></div>' +
+    '<div class="ed-row" style="margin-top:12px;"><button class="ed-btn" onclick="closeHolidayEditor()">Close</button>' +
+      '<button class="ed-btn primary" id="edSave" onclick="saveHolidayEdits()">Save</button></div>' +
+    '<div class="ed-status" id="edStatus"></div>';
+}
+function setEdStatus(t){ const el = document.getElementById('edStatus'); if(el) el.textContent = t; }
+async function edPickIcon(input){
+  if(!input.files || !input.files[0]) return;
+  try{
+    editIcon = await resizeIconFile(input.files[0]);
+    const pv = document.getElementById('edIconPrev'); pv.src = editIcon; pv.style.visibility = 'visible';
+    setEdStatus('Icon ready — tap Save');
+  }catch(e){ setEdStatus(e.message); }
+}
+function edClearIcon(){ editIcon = ''; const pv = document.getElementById('edIconPrev'); pv.style.visibility = 'hidden'; setEdStatus('Icon will be removed on Save'); }
+async function saveHolidayEdits(){
+  const key = editKey, btn = document.getElementById('edSave');
+  const fields = {
+    name: document.getElementById('edName').value.trim() || hol(key).name,
+    start: readSpec('edS'), end: readSpec('edE'),
+    font: document.getElementById('edFont').value,
+    color: document.getElementById('edColorUse').checked ? document.getElementById('edColor').value : '',
+    accent: document.getElementById('edAccentUse').checked ? document.getElementById('edAccent').value : ''
+  };
+  btn.disabled = true; setEdStatus('Saving…');
+  try{
+    await saveHoliday(key, fields);
+    holidayOverrides[key] = Object.assign({}, holidayOverrides[key] || {}, fields, {stickers: hol(key).stickers});
+    if(editIcon !== undefined){
+      setEdStatus('Saving icon…');
+      if(editIcon === ''){ await saveHoliday(key, {icon:''}); delete holidayIcons[key]; }
+      else { await saveHolidayIcon(key, editIcon); holidayIcons[key] = editIcon; }
+      editIcon = undefined;
+    }
+    applyHoliday();
+    setEdStatus('Saved ✓');
+    showToast('Holiday saved');
+  }catch(e){ setEdStatus('Could not save: ' + e.message); }
+  btn.disabled = false;
+}
+
+// ===== Sticker editor =====
+let stk = {key:null, cat:null, data:{}};
+function openStickerEditor(key){
+  stk.key = key; stk.cat = currentCat;
+  stk.data = JSON.parse(JSON.stringify(hol(key).stickers || {}));
+  renderStickerEditor();
+  document.getElementById('stkBackdrop').style.display = 'flex';
+}
+function closeStickerEditor(){ document.getElementById('stkBackdrop').style.display = 'none'; }
+function stkDefault(id){
+  return STICKER_SVG[id] ? {id, x:0, y:-0.4, s:0.8, r:0} : {id, x:0.32, y:-0.34, s:0.5, r:0};
+}
+function stkPalette(){ return (STICKER_PALETTE[stk.key] || []).concat(STICKER_GENERIC); }
+function renderStickerEditor(){
+  const cur = stk.data[stk.cat];
+  const photo = catPhotos[stk.cat];
+  document.getElementById('stkCard').innerHTML =
+    '<div class="ed-title">Stickers · ' + escapeHtml(hol(stk.key).name) + '</div>' +
+    '<div class="stk-cats">' + CATS.map((c,i) => '<button class="' + (c===stk.cat?'active':'') + '" onclick="stk.cat=CATS[' + i + '];renderStickerEditor()">' + escapeHtml(c) + '</button>').join('') + '</div>' +
+    '<div class="stk-prev" id="stkPrev"><div class="stk-face">' + (photo ? '<img src="' + photo + '" alt="">' : escapeHtml(stk.cat)) + '</div><span id="stkSlot"></span></div>' +
+    '<div style="text-align:center;font-size:0.78rem;color:var(--ink-soft);">Drag the sticker to place it</div>' +
+    '<div class="stk-pal">' + stkPalette().map(id => '<button class="' + (cur && cur.id===id?'active':'') + '" onclick="stkPick(\'' + id + '\')">' + stickerInner(id) + '</button>').join('') +
+      '<button onclick="stkPick(null)" style="font-size:13px;">None</button></div>' +
+    '<div class="about-label">Size</div><input id="stkSize" type="range" min="0.25" max="1.6" step="0.05" style="width:100%;" value="' + (cur ? cur.s : 0.8) + '" oninput="stkSet(\'s\',Number(this.value))">' +
+    '<div class="about-label">Tilt</div><input id="stkRot" type="range" min="-60" max="60" step="1" style="width:100%;" value="' + (cur ? cur.r : 0) + '" oninput="stkSet(\'r\',Number(this.value))">' +
+    '<div class="ed-row" style="margin-top:12px;"><button class="ed-btn" onclick="closeStickerEditor()">Cancel</button><button class="ed-btn primary" id="stkSave" onclick="saveStickers()">Save</button></div>' +
+    '<div class="ed-status" id="stkStatus"></div>';
+  stkDraw();
+}
+function stkDraw(){
+  const slot = document.getElementById('stkSlot');
+  if(slot) slot.outerHTML = '<span id="stkSlot">' + stickerHTML(stk.data[stk.cat], 180) + '</span>';
+}
+function stkPick(id){
+  if(!id){ delete stk.data[stk.cat]; }
+  else { const old = stk.data[stk.cat]; stk.data[stk.cat] = old ? Object.assign({}, old, {id}) : stkDefault(id); }
+  renderStickerEditor();
+}
+function stkSet(k, v){ if(stk.data[stk.cat]){ stk.data[stk.cat][k] = v; stkDraw(); } }
+(function(){
+  let drag = null;
+  document.addEventListener('pointerdown', e => {
+    const prev = e.target.closest && e.target.closest('#stkPrev');
+    const cur = prev && stk.data[stk.cat];
+    if(!cur) return;
+    drag = {x:e.clientX, y:e.clientY, ox:cur.x, oy:cur.y, el:prev};
+    try{ prev.setPointerCapture(e.pointerId); }catch(_){}
+    e.preventDefault();
+  });
+  document.addEventListener('pointermove', e => {
+    if(!drag) return;
+    const cur = stk.data[stk.cat];
+    cur.x = Math.max(-0.9, Math.min(0.9, drag.ox + (e.clientX - drag.x) / 180));
+    cur.y = Math.max(-0.9, Math.min(0.9, drag.oy + (e.clientY - drag.y) / 180));
+    stkDraw();
+  });
+  ['pointerup','pointercancel'].forEach(ev => document.addEventListener(ev, () => { drag = null; }));
+})();
+async function saveStickers(){
+  const btn = document.getElementById('stkSave'), st = document.getElementById('stkStatus');
+  btn.disabled = true; st.textContent = 'Saving…';
+  try{
+    await saveHoliday(stk.key, {stickers: JSON.stringify(stk.data)});
+    holidayOverrides[stk.key] = Object.assign({}, holidayOverrides[stk.key] || {}, {stickers: JSON.parse(JSON.stringify(stk.data))});
+    renderStickers();
+    showToast('Stickers saved');
+    closeStickerEditor();
+  }catch(e){ st.textContent = 'Could not save: ' + e.message; }
+  btn.disabled = false;
 }
 
 // ===== Title font =====
@@ -622,17 +998,19 @@ function setTitleFont(k){
   applyTitleFont();
 }
 function applyTitleFont(){
-  const f = TITLE_FONTS[titleFontKey];
-  if(f.g && !document.getElementById('gf_' + titleFontKey)){
+  const h = (typeof activeHolidayKey !== 'undefined' && activeHolidayKey) ? hol(activeHolidayKey) : null;
+  const key = (h && h.font && TITLE_FONTS[h.font]) ? h.font : titleFontKey;
+  const f = TITLE_FONTS[key];
+  if(f.g && !document.getElementById('gf_' + key)){
     const l = document.createElement('link');
-    l.id = 'gf_' + titleFontKey; l.rel = 'stylesheet';
+    l.id = 'gf_' + key; l.rel = 'stylesheet';
     l.href = 'https://fonts.googleapis.com/css2?family=' + f.g + '&display=swap';
     document.head.appendChild(l);
   }
-  const root = document.documentElement;
-  root.style.setProperty('--title-font', f.css);
+  document.documentElement.style.setProperty('--title-font', f.css);
   const h1 = document.getElementById('appTitle');
   h1.style.fontWeight = f.weight;
+  h1.style.color = (h && h.color) ? h.color : '';
 }
 
 function applyTheme(){
@@ -681,15 +1059,16 @@ function fmtStamp(iso){
 }
 function syncSettingsUI(){
   document.querySelectorAll('#clockSeg button').forEach(b => b.classList.toggle('active', b.dataset.pref === clockPref));
+  document.querySelectorAll('#holChangeSeg button').forEach(b => b.classList.toggle('active', b.dataset.pref === holidayChange));
   const hs = document.getElementById('holidaySel'), fs = document.getElementById('fontSel');
-  if(hs && !hs.options.length){
-    hs.innerHTML = '<option value="auto">Automatic (by date)</option><option value="off">Off</option>' +
-      Object.keys(HOLIDAYS).map(k => '<option value="' + k + '">Preview: ' + HOLIDAYS[k].name + '</option>').join('');
+  if(hs){
+    hs.innerHTML = '<option value="follow">Follow the schedule</option><option value="off">Off (standard theme)</option>' +
+      allHolidayKeys().map(k => '<option value="' + k + '">Always: ' + escapeHtml(hol(k).name) + '</option>').join('');
+    hs.value = holidayPref;
   }
   if(fs && !fs.options.length){
     fs.innerHTML = Object.keys(TITLE_FONTS).map(k => '<option value="' + k + '">' + TITLE_FONTS[k].label + '</option>').join('');
   }
-  if(hs) hs.value = holidayPref;
   if(fs) fs.value = titleFontKey;
   applyTheme();
 }
@@ -808,11 +1187,11 @@ function renderCatTabs(){
   const el = document.getElementById('catTabs');
   if(!el.querySelector('.cat-ring')){
     el.innerHTML = '<div class="cat-ring"></div>' + CATS.map((c,i) =>
-      '<div class="cat-cell" data-cat="' + escapeHtml(c) + '" role="button" aria-label="' + escapeHtml(c) + '" title="' + escapeHtml(c) + '" onclick="switchCat(' + i + ')"><div class="cat-btn"></div></div>').join('');
+      '<div class="cat-cell" data-cat="' + escapeHtml(c) + '" role="button" aria-label="' + escapeHtml(c) + '" title="' + escapeHtml(c) + '" onclick="switchCat(' + i + ')"><div class="cat-face"><div class="cat-btn"></div></div></div>').join('');
     ringLeft = null;
   }
   el.querySelectorAll('.cat-cell').forEach((cell,i) => {
-    const btn = cell.firstChild, c = CATS[i], photo = catPhotos[c] || '';
+    const btn = cell.querySelector('.cat-btn'), c = CATS[i], photo = catPhotos[c] || '';
     if(btn.dataset.photo !== photo){
       btn.dataset.photo = photo;
       btn.innerHTML = photo ? '<img src="' + photo + '" alt="">' :
@@ -820,6 +1199,7 @@ function renderCatTabs(){
     }
     cell.classList.toggle('active', c === currentCat);
   });
+  renderStickers();
   positionCatRing(false);
 }
 
@@ -940,11 +1320,9 @@ async function loadWeather(earliestDateKey){
 // Sets the favicon/apple-touch-icon directly from the sheet-provided image,
 // and builds an in-memory manifest (via a Blob URL) so the standalone-display
 // hint is present once this is actually hosted over HTTPS.
-function updateIconsAndManifest(logoDataUri){
+function setAppIcon(logoDataUri){
   document.getElementById('faviconLink').href = logoDataUri;
   document.getElementById('appleTouchIcon').href = logoDataUri;
-  defaultLogo = logoDataUri;
-
   const manifest = {
     name: "Cat Bathroom Tracker",
     short_name: "Cat Bathroom Tracker",
@@ -956,6 +1334,10 @@ function updateIconsAndManifest(logoDataUri){
   };
   const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
   document.getElementById('manifestLink').href = URL.createObjectURL(blob);
+}
+function updateIconsAndManifest(logoDataUri){
+  defaultLogo = logoDataUri;      // the standard (no-holiday) icon
+  refreshAppIcon();
 }
 
 // A real default icon that works everywhere (including iOS home screen)
@@ -1216,6 +1598,7 @@ function loadData(silent, attempt){
       });
       applyCatFilter();
       updateLastSeen();
+      if(data.holidays){ setHolidayConfig(data.holidays); applyHoliday(); }
       if(data.scriptVersion) scriptVersion = data.scriptVersion;
       if(data.logo){
         updateIconsAndManifest(data.logo);
@@ -1302,20 +1685,31 @@ function loadData(silent, attempt){
 // Checks (when the app is opened/returned to, and every 2 minutes) whether the
 // hosted file has a newer BUILD_STAMP than the one running, and offers a reload.
 let remoteStamp = null;
-async function checkForUpdate(){
+const pageLoadedAt = Date.now();
+async function checkForUpdate(isFirst){
   try{
     const res = await fetch(location.pathname + '?_=' + Date.now(), {cache:'no-store'});
     if(!res.ok) return;
     const m = (await res.text()).match(/const BUILD_STAMP = '([^']+)'/);
     if(!m) return;
     remoteStamp = m[1];
-    document.getElementById('updateBanner').style.display =
-      new Date(remoteStamp) > new Date(BUILD_STAMP) ? 'flex' : 'none';
+    const newer = new Date(remoteStamp) > new Date(BUILD_STAMP);
+    // Just opened the app and it's stale (e.g. cached copy)? Update silently, once.
+    // If the app was already open when a new version deployed, offer a Reload button instead.
+    if(newer && isFirst === true && Date.now() - pageLoadedAt < 30000){
+      let tried = null; try{ tried = sessionStorage.getItem('autoReloadFor'); }catch(e){}
+      if(tried !== remoteStamp){
+        try{ sessionStorage.setItem('autoReloadFor', remoteStamp); }catch(e){}
+        reloadLatest();
+        return;
+      }
+    }
+    document.getElementById('updateBanner').style.display = newer ? 'flex' : 'none';
   }catch(e){ /* offline or file:// — ignore */ }
 }
 document.addEventListener('visibilitychange', () => { if(!document.hidden) checkForUpdate(); });
-setInterval(checkForUpdate, 120000);
-setTimeout(checkForUpdate, 3000);
+setInterval(() => checkForUpdate(), 120000);
+setTimeout(() => checkForUpdate(true), 2500);
 
 // Photos are fetched in a second, separate request after the app is already
 // showing, so their size can never slow down or break the main data load.
@@ -1331,6 +1725,7 @@ function loadPhotos(){
     done();
     if(!data || data.error){ console.warn('Photos:', data && data.error); return; }
     catPhotos = data.catPhotos || {};
+    if(data.holidayIcons){ holidayIcons = data.holidayIcons; refreshAppIcon(); }
     if(data.scriptVersion) scriptVersion = data.scriptVersion;
     console.log('Photo diagnostics:', data.photoDebug);
     if(data.logo) updateIconsAndManifest(data.logo);
