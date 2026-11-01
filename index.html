@@ -88,7 +88,7 @@
   html,body{height:100%;}
   body{
     margin:0;
-    background:var(--paper);
+    background:transparent;
     color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
     line-height:1.45;
@@ -108,7 +108,7 @@
 
   .stage{display:flex; justify-content:center; align-items:flex-start; padding:24px 12px 60px; min-height:calc(100vh - 46px);}
   .stage.native-stage{padding:0; min-height:100vh; display:block;}
-  .device-frame{background:var(--paper); transition:all .15s ease;}
+  .device-frame{background:transparent; transition:all .15s ease;}
   .device-frame.desktop{
     width:100%; max-width:980px; border-radius:4px;
     height:auto; aspect-ratio:auto; overflow:visible;
@@ -150,8 +150,6 @@
   }
   header{position:relative;margin-bottom:14px;padding-bottom:2px;}
   header h1{text-align:center;font-size:clamp(1.3rem,7.4vw,1.75rem);line-height:1.12;margin:12px 0 0;font-weight:700;letter-spacing:-0.015em;text-wrap:balance;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;font-family:var(--title-font, inherit);}
-  .holiday-greeting{text-align:center;font-size:0.8rem;color:var(--accent);font-weight:600;margin-top:2px;min-height:0;}
-  .holiday-greeting:empty{display:none;}
   header .sub{color:var(--ink-soft);font-size:0.85rem;}
 
   /* Period-change animation */
@@ -191,13 +189,13 @@
   .view-switch button.active{color:var(--on-ink);}
   .view-tabs{display:none;}
   :root[data-theme="dark"] .list-day-header td{background:#2f423c;color:#f1f6f3;box-shadow:inset 4px 0 0 var(--accent);}
-  .list-table td,.list-table th{padding-left:5px;padding-right:5px;}
+  .list-table td,.list-table th{padding-left:6px;padding-right:6px;}
   .list-table td:last-child{word-break:break-word;}
   .last-seen{container-type:inline-size;display:flex;flex-wrap:nowrap;gap:6px;margin:0 0 12px;}
   .last-seen span{flex:1 1 0;min-width:0;text-align:center;white-space:nowrap;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 4px;font-size:clamp(0.56rem,3.2cqw,0.76rem);color:var(--ink-soft);}
   .last-seen b{color:var(--ink);font-weight:700;}
-  .fx{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:2;}
-  .fx span{position:absolute;top:-30px;opacity:0.4;animation:fxFall linear infinite;will-change:transform;}
+  .fx{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:-1;}
+  .fx span{position:absolute;top:-30px;opacity:0.3;animation:fxFall linear infinite;will-change:transform;}
   @keyframes fxFall{0%{transform:translate3d(0,-30px,0) rotate(0);}100%{transform:translate3d(var(--dx,20px),calc(100vh + 40px),0) rotate(var(--rot,360deg));}}
   .toast{position:fixed;left:50%;bottom:max(96px,calc(env(safe-area-inset-bottom) + 90px));transform:translate(-50%,20px);opacity:0;pointer-events:none;
     background:var(--ink);color:var(--on-ink);padding:10px 18px;border-radius:999px;font-size:0.88rem;font-weight:600;z-index:95;transition:opacity .25s,transform .35s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;}
@@ -262,11 +260,13 @@
   .list-range{flex:1;min-width:0;font-size:16px;font-weight:700;padding:7px 6px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);}
   .list-custom{display:flex;gap:6px;align-items:center;padding:10px 0 4px;font-size:0.8rem;color:var(--ink-soft);}
   .list-custom input{flex:1;min-width:0;font-size:16px;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);}
-  .list-table{table-layout:fixed;}
+  .list-table{table-layout:auto;}
   .list-table th,.list-table td{text-align:center;}
   .list-table th:last-child,.list-table td:last-child{text-align:left;}
-  .list-table th:nth-child(1){width:19%;} .list-table th:nth-child(2){width:31%;} .list-table th:nth-child(3){width:19%;}
-  .list-table td:nth-child(-n+3){white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .list-table th,.list-table td{border-left:none;border-right:none;}
+  .list-table th:nth-child(1),.list-table td:nth-child(1),.list-table th:nth-child(2),.list-table td:nth-child(2){white-space:nowrap;}
+  .list-table th:nth-child(2),.list-table td:nth-child(2){text-align:left;}
+  .list-table th:nth-child(3),.list-table td:nth-child(3){white-space:nowrap;}
   .list-card .list-table{font-size:0.78rem;}
   .list-card .list-table thead th{position:sticky;top:calc(var(--stickyH, 120px) + var(--ctlH, 52px));z-index:5;background:var(--card);box-shadow:0 2px 0 var(--ink);border-bottom:none;}
   .list-card .list-day-header td{position:sticky;top:calc(var(--stickyH, 120px) + var(--ctlH, 52px) + var(--theadH, 30px));z-index:4;}
@@ -343,7 +343,6 @@
       <div class="sticky-top" id="stickyTop">
         <header>
           <h1 id="appTitle">Cat Bathroom Tracker</h1>
-          <div id="holidayGreeting" class="holiday-greeting"></div>
         </header>
 
         <div id="catTabs" class="cat-tabs" style="display:none;"></div>
@@ -420,7 +419,7 @@
     </div>
   </div>
 </div>
-<div id="photoStatus" style="text-align:center;font-size:0.7rem;color:var(--ink-soft);padding:0 18px 90px;"></div>
+<div style="height:90px;"></div>
 <div class="tooltip" id="tooltip"></div>
         <div id="addEventBackdrop" class="modal-backdrop" style="display:none;" onclick="if(event.target===this) toggleAddEventForm();">
   <div id="addEventForm" class="modal-card">
@@ -528,7 +527,7 @@ let allStraining = [], allPee = [], allPoop = [], allStressEvents = [];
 // belonging to the first cat, for backward compatibility.
 // Stamped each time the file is regenerated, so the popup tells you which
 // version your device is actually running.
-const BUILD_STAMP = '2026-11-01T17:56:48-05:00';
+const BUILD_STAMP = '2026-11-01T18:07:09-05:00';
 // ===== Holidays =====
 const HOLIDAYS = {
   newyear:     {name:"New Year's",     greet:'🎉 Happy New Year!',         badge:'🎉', fx:['🎊','✨','🎉'], light:'#a8841f', dark:'#b8952b'},
@@ -579,14 +578,13 @@ function applyHoliday(){
     delete root.dataset.holiday;
     ['--accent','--fab','--badge'].forEach(v => root.style.removeProperty(v));
   }
-  document.getElementById('holidayGreeting').textContent = h ? h.greet : '';
   buildFx(h);
 }
 function buildFx(h){
   const fx = document.getElementById('fx');
   fx.innerHTML = '';
   if(!h || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const n = 14;
+  const n = 10;
   for(let i = 0; i < n; i++){
     const sp = document.createElement('span');
     sp.textContent = h.fx[i % h.fx.length];
@@ -645,7 +643,7 @@ function applyTheme(){
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
   document.querySelector('meta[name="theme-color"]').content = dark ? '#0d1110' : '#eef1ee';
   document.querySelectorAll('#themeSeg button').forEach(b => b.classList.toggle('active', b.dataset.pref === pref));
-  if(typeof applyHoliday === 'function' && document.getElementById('holidayGreeting') && was !== document.documentElement.dataset.theme) applyHoliday();
+  if(typeof applyHoliday === 'function' && was !== document.documentElement.dataset.theme) applyHoliday();
   if(was !== document.documentElement.dataset.theme && typeof dateList !== 'undefined' && dateList.length) renderCurrentView(true);
 }
 function setThemePref(pref){ try{ localStorage.setItem('themePref', pref); }catch(e){} applyTheme(); }
@@ -1326,22 +1324,19 @@ function loadPhotos(){
   if(photosLoading) return;
   photosLoading = true;
   const cbName = 'photoCallback_' + (++callbackCounter);
-  const el = document.getElementById('photoStatus');
   const script = document.createElement('script');
   const done = () => { photosLoading = false; clearTimeout(timeout); delete window[cbName]; script.remove(); };
-  const timeout = setTimeout(() => { if(window[cbName]){ done(); el.textContent = 'Photos timed out (they may be too large).'; } }, 45000);
+  const timeout = setTimeout(() => { if(window[cbName]){ done(); console.warn('Photos timed out (they may be too large).'); } }, 45000);
   window[cbName] = function(data){
     done();
-    if(!data || data.error){ el.textContent = 'Photos: ' + (data && data.error || 'error'); return; }
+    if(!data || data.error){ console.warn('Photos:', data && data.error); return; }
     catPhotos = data.catPhotos || {};
     if(data.scriptVersion) scriptVersion = data.scriptVersion;
     console.log('Photo diagnostics:', data.photoDebug);
     if(data.logo) updateIconsAndManifest(data.logo);
     renderCatTabs();
-      const missing = CATS.filter(c => !catPhotos[c]);
-    el.textContent = missing.length ? 'No photo found for: ' + missing.join(', ') + (data.photoDebug ? ' (' + data.photoDebug.summary + ')' : '') : '';
-  };
-  script.onerror = () => { done(); el.textContent = 'Could not load photos.'; };
+    };
+  script.onerror = () => { done(); console.warn('Could not load photos.'); };
   script.src = APPS_SCRIPT_URL + '?action=photos&callback=' + cbName + '&_=' + Date.now();
   document.head.appendChild(script);
 }
@@ -1557,15 +1552,17 @@ function collectRows(lo, hi, type){
 }
 
 function buildEntryTable(rows, sortDir){
-  rows.sort((a,b) => sortDir === 'desc' ? b.time - a.time : a.time - b.time);
+  // Days follow the chosen direction; times inside each day always run morning → night.
+  const byDay = {};
+  rows.forEach(r => (byDay[r.date] = byDay[r.date] || []).push(r));
+  const days = Object.keys(byDay).sort();
+  if(sortDir === 'desc') days.reverse();
   let html = '<table class="list-table"><thead><tr><th>Time</th><th>Type</th><th>Detail</th><th>Note</th></tr></thead><tbody>';
-  let lastDate = null;
-  rows.forEach(r => {
-    if(r.date !== lastDate){
-      html += '<tr class="list-day-header"><td colspan="4">' + dayHeading(r.date) + '</td></tr>';
-      lastDate = r.date;
-    }
-    html += '<tr><td>' + fmtTime(r.time) + '</td><td>' + r.type + '</td><td>' + r.detail + '</td><td>' + escapeHtml(r.note) + '</td></tr>';
+  days.forEach(d => {
+    html += '<tr class="list-day-header"><td colspan="4">' + dayHeading(d) + '</td></tr>';
+    byDay[d].sort((a,b) => a.time - b.time).forEach(r => {
+      html += '<tr><td>' + fmtTime(r.time) + '</td><td>' + r.type + '</td><td>' + r.detail + '</td><td>' + escapeHtml(r.note) + '</td></tr>';
+    });
   });
   return html + '</tbody></table>';
 }
